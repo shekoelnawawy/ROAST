@@ -140,9 +140,9 @@ backcastopts=[2,3,4,5,6,7]
 def main():
 	# Nawawy's start
 	global subjects
-	if year == '2018data':
+	if "2018data" in year:
 		subjects = ['559', '563', '570', '575', '588', '591']  # 2018
-	elif year == '2020data':
+	elif "2020data" in year:
 		subjects = ['540', '544', '552', '567', '584', '596']  # 2020
 	# Nawawy's end
 	# maindir = os.getcwd()+'/'+outstr
@@ -355,7 +355,7 @@ def train_and_evaluate(curmodel,maindir,forecast_length,backcast_length,sub,base
 		attack_cfg = {"ohiot1dm_attack_type": "URET"}
 
 	if attack_cfg.get("ohiot1dm_attack_type", "URET") == "FGSM":
-		allPatients_adversarial = fgsm_attack(model=net, x=allPatients_benign, y=allTargets_benign, epsilon=30, clip_min=180, clip_max=499, backcast_length=backcast_length, nv=nv, device=device)
+		allPatients_adversarial = fgsm_attack(model=net, x=allPatients_benign, y=allTargets_benign, epsilon=20, clip_min=90, clip_max=499, backcast_length=backcast_length, nv=nv, device=device)
 	else:
 		explorer = process_config_file(cf, net, feature_extractor=feature_extractor, input_processor_list=[])
 		explorer.scoring_function = mse

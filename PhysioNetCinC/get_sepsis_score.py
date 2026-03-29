@@ -16,6 +16,7 @@ import torch.nn.functional as F
 from pathlib import Path
 import joblib
 import sys
+import yaml
 
 from URET.uret.utils.config import process_config_file
 cf = str(Path(__file__).resolve().parent/"URET"/"brute.yml")
@@ -62,29 +63,66 @@ def get_sepsis_score(data, model, adversary=False, adversarial_data=None):
     data = data.fillna(0).values
     # Nawawy's start
     device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
-    # data=torch.tensor(data).float().to(device)
     backcast_length = data.shape[0]
     nv = data.shape[1]
-    # Call URET here
+
+    norm = np.array([2.800e+02, 1.000e+02, 5.000e+01, 3.000e+02, 3.000e+02, 3.000e+02, 1.000e+02,
+                     1.000e+02, 1.000e+02, 5.500e+01, 4.000e+03, 7.930e+00, 1.000e+02, 1.000e+02,
+                     9.961e+03, 2.680e+02, 3.833e+03, 2.790e+01, 1.450e+02, 4.660e+01, 3.750e+01,
+                     9.880e+02, 3.100e+01, 9.800e+00, 1.880e+01, 2.750e+01, 4.960e+01, 4.400e+02,
+                     7.170e+01, 3.200e+01, 2.500e+02, 4.400e+02, 1.760e+03, 2.322e+03, 1.000e+02,
+                     1.000e+00, 1.000e+00, 1.000e+00, 2.399e+01, 3.360e+02])
+
+    config_path = str(Path(__file__).resolve().parent.parent / "pipeline_config.yml")
+    if os.path.exists(config_path):
+        with open(config_path, "r") as f:
+            attack_cfg = yaml.safe_load(f)
+    else:
+        attack_cfg = {"physionetcinc_attack_type": "URET"}
+        
+    attack_type = attack_cfg.get("physionetcinc_attack_type", "URET")
+
     if adversary:
-        explorer = process_config_file(cf, model, feature_extractor=feature_extractor, input_processor_list=[])
-        explorer.scoring_function = mse
-        allPatients_benign = data
-        explore_params = [allPatients_benign, backcast_length, nv]
-        allPatients_adversarial = np.array(explorer.explore(explore_params))
-        if allPatients_adversarial[0] is None:
-            allPatients_adversarial = allPatients_benign
-        allPatients_adversarial = allPatients_adversarial.reshape(backcast_length, nv)
-        data = allPatients_adversarial
-        adversarial_data[backcast_length - 1] = data[backcast_length - 1]
-    # Nawawy's end
-    norm = [2.800e+02, 1.000e+02, 5.000e+01, 3.000e+02, 3.000e+02, 3.000e+02, 1.000e+02,
-            1.000e+02, 1.000e+02, 5.500e+01, 4.000e+03, 7.930e+00, 1.000e+02, 1.000e+02,
-            9.961e+03, 2.680e+02, 3.833e+03, 2.790e+01, 1.450e+02, 4.660e+01, 3.750e+01,
-            9.880e+02, 3.100e+01, 9.800e+00, 1.880e+01, 2.750e+01, 4.960e+01, 4.400e+02,
-            7.170e+01, 3.200e+01, 2.500e+02, 4.400e+02, 1.760e+03, 2.322e+03, 1.000e+02,
-            1.000e+00, 1.000e+00, 1.000e+00, 2.399e+01, 3.360e+02]
-    data = data/norm
+        if attack_type == "FGSM":
+            # --- FGSM Attack ---
+            data_normalized = data / norm
+            eps = 0.02
+
+            data_tensor = torch.tensor(data_normalized, dtype=torch.float32, device=device, requires_grad=True)
+            model.train()
+            logits, _ = model(data_tensor)
+            
+            target = torch.tensor([0], dtype=torch.long).to(device)
+            loss = F.cross_entropy(logits, target)
+
+            model.zero_grad()
+            loss.backward()
+            model.eval()
+
+            with torch.no_grad():
+                data_adv = data_tensor - eps * data_tensor.grad.sign()
+                data_adv = torch.clamp(data_adv, min=0.0)
+
+            data_normalized = data_adv.cpu().numpy().reshape(backcast_length, nv)
+            adversarial_data[backcast_length - 1] = (data_normalized * norm)[backcast_length - 1]
+            data = data_normalized
+        else:
+            # --- URET Attack ---
+            explorer = process_config_file(cf, model, feature_extractor=feature_extractor, input_processor_list=[])
+            explorer.scoring_function = mse
+            explore_params = [data, backcast_length, nv]
+            allPatients_adversarial = np.array(explorer.explore(explore_params))
+            
+            if allPatients_adversarial[0] is None:
+                allPatients_adversarial = data
+                
+            allPatients_adversarial = allPatients_adversarial.reshape(backcast_length, nv)
+            adversarial_data[backcast_length - 1] = allPatients_adversarial[backcast_length - 1]
+            data = allPatients_adversarial / norm
+    else:
+        # Benign mode
+        data = data / norm
+
     # Nawawy's start
     data = torch.Tensor(data).float().to(device)
     # Nawawy's end

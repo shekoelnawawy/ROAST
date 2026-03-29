@@ -59,7 +59,7 @@ import evaluation
 # Nawawy's MIMIC start
 import joblib
 import sys
-
+import yaml
 
 from URET.uret.utils.config import process_config_file
 cf = str(Path(__file__).resolve().parent.parent/"URET"/"brute.yml")
@@ -321,25 +321,73 @@ class DL_models():
             # Nawawy's MIMIC start
             allPatients_benign = meds, chart, out, proc, lab, stat, demo
 
-            # CALL URET HERE
+            config_path = str(Path(__file__).resolve().parent.parent.parent / "pipeline_config.yml")
+            if os.path.exists(config_path):
+                with open(config_path, "r") as f:
+                    attack_cfg = yaml.safe_load(f)
+            else:
+                attack_cfg = {"mimic_attack_type": "URET"}
+            
+            attack_type = attack_cfg.get("mimic_attack_type", "URET")
+
+            # CALL ATTACK HERE
             if adversary:
-                explorer = process_config_file(cf, self.net, feature_extractor=feature_extractor, input_processor_list=[])
-                explorer.scoring_function = self.loss
+                if attack_type == "FGSM":
+                    # --- FGSM Attack ---
+                    eps = 0.2
 
-                explore_params = [allPatients_benign, chart.shape[1], chart.shape[2], y]
+                    # Enable gradient tracking for the chart component
+                    chart_tensor = chart.clone().detach().float().to(self.device).requires_grad_(True)
+                    
+                    # Set model to train mode to allow gradients across the LSTM
+                    self.net.train()
+                    output, logits = self.net(meds.to(self.device), chart_tensor, out.to(self.device), 
+                                            proc.to(self.device), lab.to(self.device), 
+                                            stat.to(self.device), demo.to(self.device))
+                    
+                    # Compute Binary Cross Entropy loss (MIMIC uses BCE)
+                    # We target label 0 (healthy) to push predictions away from the positive class
+                    target = torch.zeros_like(output).to(self.device)
+                    loss = F.binary_cross_entropy(output, target)
 
-                allPatients_adversarial = explorer.explore(explore_params)
+                    self.net.zero_grad()
+                    loss.backward()
+                    self.net.eval()
 
-                meds = allPatients_adversarial[0]
-                chart = allPatients_adversarial[1]
-                out = allPatients_adversarial[2]
-                proc = allPatients_adversarial[3]
-                lab = allPatients_adversarial[4]
-                stat = allPatients_adversarial[5]
-                demo = allPatients_adversarial[6]
+                    with torch.no_grad():
+                        chart_adv = chart_tensor - eps * chart_tensor.grad.sign()
+                        chart_adv = torch.clamp(chart_adv, min=0.0)
+
+                    # Update allPatients_adversarial for later output tracking
+                    # Chart is at index 1 in the meds, chart, out... sequence
+                    allPatients_adversarial = [meds, chart_adv, out, proc, lab, stat, demo]
+                    
+                    # Re-run forward pass to get final adversarial output/logits
+                    output, logits = self.net(meds.to(self.device), chart_adv, out.to(self.device), 
+                                            proc.to(self.device), lab.to(self.device), 
+                                            stat.to(self.device), demo.to(self.device))
+                    
+                else:
+                    # --- URET Attack ---
+                    explorer = process_config_file(cf, self.net, feature_extractor=feature_extractor, input_processor_list=[])
+                    explorer.scoring_function = self.loss
+
+                    explore_params = [allPatients_benign, chart.shape[1], chart.shape[2], y]
+                    allPatients_adversarial = explorer.explore(explore_params)
+
+                    meds = allPatients_adversarial[0]
+                    chart = allPatients_adversarial[1]
+                    out = allPatients_adversarial[2]
+                    proc = allPatients_adversarial[3]
+                    lab = allPatients_adversarial[4]
+                    stat = allPatients_adversarial[5]
+                    demo = allPatients_adversarial[6]
+                    
+                    output, logits = self.net(meds, chart, out, proc, lab, stat, demo)
+            else:
+                # Regular non-adversarial pass
+                output, logits = self.net(meds, chart, out, proc, lab, stat, demo)
             # Nawawy's MIMIC end
-
-            output,logits = self.net(meds,chart,out,proc,lab,stat,demo)
 #             self.model_interpret([meds,chart,out,proc,lab,stat,demo])
 #             # Nawawy's MIMIC start
             if nbatch == 0:

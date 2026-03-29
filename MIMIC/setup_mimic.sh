@@ -21,10 +21,7 @@ $PIP install torch==1.12.1+cu113 torchvision==0.13.1+cu113 \
   -f https://download.pytorch.org/whl/torch_stable.html
 
 echo ">>> Copying MIMIC data"
-cp -r ~/Downloads/MIMIC/original/data "$BASE_DIR/" || true
-cp -r ~/Downloads/MIMIC/original/mimiciv "$BASE_DIR/" || true
-cp -r ~/Downloads/MIMIC/original/saved_models "$BASE_DIR/" || true
-cp -r ~/Downloads/MIMIC/original/utils "$BASE_DIR/" || true
+cp -r ~/Downloads/MIMIC/original/* "$BASE_DIR/" || true
 
 echo ">>> Installing URET"
 cd "$SCRIPT_DIR/URET"
