@@ -1,0 +1,17 @@
+import_ipynb==0.1.3
+ipywidgets==7.5.1
+Jinja2==2.11.2
+matplotlib==3.2.2
+numpy==1.18.5
+pandas==1.0.5
+scikit_learn==1.0.2
+PyYAML==6.0
+tqdm==4.47.0
+xgboost==1.6.2
+imbalanced-learn==0.8.1
+captum==0.6.0
+pytorch-pretrained-bert==0.6.2
+argparse
+jupyter
+argparse
+markupsafe==2.0.1

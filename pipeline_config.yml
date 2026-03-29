@@ -1,0 +1,16 @@
+# OhioT1DM Pipeline
+ohiot1dm_preprocess: false
+ohiot1dm_model: false
+ohiot1dm_dataset: 2020  #2018, 2020
+ohiot1dm_attack_type: "URET"
+
+# MIMIC Pipeline
+mimic_preprocess: false
+mimic_model_train: false
+mimic_model_test: false
+mimic_attack_type: "URET"
+
+# PhysioNetCinC Pipeline
+physionetcinc_model: false
+physionetcinc_dataset: "A"  #A, B
+physionetcinc_attack_type: "URET"
