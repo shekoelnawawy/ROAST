@@ -4,3 +4,4 @@ pandas
 PyYAML
 argparse
 joblib
+dtaidistance==2.3.10

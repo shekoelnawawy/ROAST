@@ -17,8 +17,8 @@ echo ">>> Installing requirements"
 $PIP install -r "$SCRIPT_DIR/requirements.txt"
 
 echo ">>> Copying PhysioNetCinc data"
-rm -rf "$BASE_DIR/inputs" || true
-cp -r ~/Downloads/Sepsis/files/challenge-2019/1.0.0/training "$BASE_DIR/inputs" || true
+rm -rf "$BASE_DIR/input" || true
+cp -r ~/Downloads/Sepsis/files/challenge-2019/1.0.0/training "$BASE_DIR/input" || true
 
 echo ">>> Installing URET"
 cd "$SCRIPT_DIR/URET"

@@ -29,9 +29,9 @@ source venv_physionetcinc/bin/activate
 
 2. Run the model: ```python driver.py <input_directory> <output_directory>```
 ```
-python driver.py inputs/training_setA outputs/training_setA
+python driver.py input/training_setA output/training_setA
 ```
 or
 ```
-python driver.py inputs/training_setB outputs/training_setB
+python driver.py input/training_setB output/training_setB
 ```

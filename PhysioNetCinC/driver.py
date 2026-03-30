@@ -31,10 +31,10 @@ def save_challenge_predictions(file, scores, labels):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(
         description="Run PhysioNetCinC script: python driver.py <input_directory> <output_directory>",
-        epilog="Example: python driver.py inputs outputs"
+        epilog="Example: python driver.py input output"
     )
-    parser.add_argument("data_dir", nargs="?", default="inputs", help="Directory containing dataset")
-    parser.add_argument("out_dir", nargs="?", default="outputs", help="Output directory")
+    parser.add_argument("data_dir", nargs="?", default="input", help="Directory containing dataset")
+    parser.add_argument("out_dir", nargs="?", default="output", help="Output directory")
 
     args = parser.parse_args()
 

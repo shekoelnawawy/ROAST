@@ -41,6 +41,22 @@ RUN_MIMIC_MOD_TEST=$(yq e '.mimic_model_test' "$CONFIG_FILE")
 RUN_PHYSIONET_MOD=$(yq e '.physionetcinc_model' "$CONFIG_FILE")
 RUN_PHYSIONET_DATASET=$(yq e '.physionetcinc_dataset' "$CONFIG_FILE")
 
+# Risk Profile and Cluster flags
+RUN_OHIOT1DM_RISK=$(yq e '.ohiot1dm_risk_profile' "$CONFIG_FILE")
+RUN_OHIOT1DM_CLUS=$(yq e '.ohiot1dm_cluster' "$CONFIG_FILE")
+RUN_OHIOT1DM_CLUS_METHOD=$(yq e '.ohiot1dm_cluster_method' "$CONFIG_FILE")
+
+RUN_MIMIC_RISK=$(yq e '.mimic_risk_profile' "$CONFIG_FILE")
+RUN_MIMIC_CLUS=$(yq e '.mimic_cluster' "$CONFIG_FILE")
+RUN_MIMIC_CLUS_METHOD=$(yq e '.mimic_cluster_method' "$CONFIG_FILE")
+
+RUN_PHYS_RISK=$(yq e '.physionetcinc_risk_profile' "$CONFIG_FILE")
+RUN_PHYS_CLUS=$(yq e '.physionetcinc_cluster' "$CONFIG_FILE")
+RUN_PHYS_CLUS_METHOD=$(yq e '.physionetcinc_cluster_method' "$CONFIG_FILE")
+
+RUN_GLOBAL_RISK="false"
+RUN_GLOBAL_CLUS="false"
+
 # ---------------------------
 # Parse command-line overrides
 # ---------------------------
@@ -54,12 +70,27 @@ for arg in "$@"; do
         --mimic_model_test=*)    RUN_MIMIC_MOD_TEST="${arg#*=}" ;;
         --physionetcinc_model=*)      RUN_PHYSIONET_MOD="${arg#*=}" ;;
         --physionetcinc_dataset=*)    RUN_PHYSIONET_DATASET="${arg#*=}" ;;
+        --ohiot1dm_risk_profile=*)    RUN_OHIOT1DM_RISK="${arg#*=}" ;;
+        --ohiot1dm_cluster=*)         RUN_OHIOT1DM_CLUS="${arg#*=}" ;;
+        --ohiot1dm_cluster_method=*)  RUN_OHIOT1DM_CLUS_METHOD="${arg#*=}" ;;
+        --mimic_risk_profile=*)       RUN_MIMIC_RISK="${arg#*=}" ;;
+        --mimic_cluster=*)            RUN_MIMIC_CLUS="${arg#*=}" ;;
+        --mimic_cluster_method=*)     RUN_MIMIC_CLUS_METHOD="${arg#*=}" ;;
+        --physionetcinc_risk_profile=*) RUN_PHYS_RISK="${arg#*=}" ;;
+        --physionetcinc_cluster=*)      RUN_PHYS_CLUS="${arg#*=}" ;;
+        --physionetcinc_cluster_method=*) RUN_PHYS_CLUS_METHOD="${arg#*=}" ;;
+        --risk_profile=*)             RUN_GLOBAL_RISK="${arg#*=}" ;;
+        --cluster=*)                  RUN_GLOBAL_CLUS="${arg#*=}" ;;
         -h|--help)
             echo "Usage: $0 [--ohiot1dm_preprocess=true|false] [--ohiot1dm_model=true|false]"
-            echo "       [--ohiot1dm_dataset=2018|2020]"
+            echo "       [--ohiot1dm_dataset=2018|2020|all]"
             echo "       [--mimic_preprocess=true|false] [--mimic_model_train=true|false] [--mimic_model_test=true|false]"
             echo "       [--physionetcinc_model=true|false]"
-            echo "       [--physionetcinc_dataset=A|B]"
+            echo "       [--physionetcinc_dataset=A|B|all]"
+            echo "       [--risk_profile=true|false] [--cluster=true|false]"
+            echo "       [--ohiot1dm_risk_profile=true|false] [--ohiot1dm_cluster=true|false] [--ohiot1dm_cluster_method=hierarchical|kmeans]"
+            echo "       [--mimic_risk_profile=true|false] [--mimic_cluster=true|false] [--mimic_cluster_method=hierarchical|kmeans]"
+            echo "       [--physionetcinc_risk_profile=true|false] [--physionetcinc_cluster=true|false] [--physionetcinc_cluster_method=hierarchical|kmeans]"
             exit 0
             ;;
         *) echo "Unknown option: $arg"; exit 1 ;;
@@ -75,6 +106,32 @@ RUN_MIMIC_MOD_TRAIN=$(echo "$RUN_MIMIC_MOD_TRAIN" | tr '[:upper:]' '[:lower:]')
 RUN_MIMIC_MOD_TEST=$(echo "$RUN_MIMIC_MOD_TEST" | tr '[:upper:]' '[:lower:]')
 
 RUN_PHYSIONET_MOD=$(echo "$RUN_PHYSIONET_MOD" | tr '[:upper:]' '[:lower:]')
+
+RUN_OHIOT1DM_RISK=$(echo "$RUN_OHIOT1DM_RISK" | tr '[:upper:]' '[:lower:]')
+RUN_OHIOT1DM_CLUS=$(echo "$RUN_OHIOT1DM_CLUS" | tr '[:upper:]' '[:lower:]')
+RUN_MIMIC_RISK=$(echo "$RUN_MIMIC_RISK" | tr '[:upper:]' '[:lower:]')
+RUN_MIMIC_CLUS=$(echo "$RUN_MIMIC_CLUS" | tr '[:upper:]' '[:lower:]')
+RUN_PHYS_RISK=$(echo "$RUN_PHYS_RISK" | tr '[:upper:]' '[:lower:]')
+RUN_PHYS_CLUS=$(echo "$RUN_PHYS_CLUS" | tr '[:upper:]' '[:lower:]')
+RUN_OHIOT1DM_CLUS_METHOD=$(echo "$RUN_OHIOT1DM_CLUS_METHOD" | tr '[:upper:]' '[:lower:]')
+RUN_MIMIC_CLUS_METHOD=$(echo "$RUN_MIMIC_CLUS_METHOD" | tr '[:upper:]' '[:lower:]')
+RUN_PHYS_CLUS_METHOD=$(echo "$RUN_PHYS_CLUS_METHOD" | tr '[:upper:]' '[:lower:]')
+
+RUN_GLOBAL_RISK=$(echo "$RUN_GLOBAL_RISK" | tr '[:upper:]' '[:lower:]')
+RUN_GLOBAL_CLUS=$(echo "$RUN_GLOBAL_CLUS" | tr '[:upper:]' '[:lower:]')
+
+# Apply global overrides
+if [ "$RUN_GLOBAL_RISK" = "true" ]; then
+    RUN_OHIOT1DM_RISK="true"
+    RUN_MIMIC_RISK="true"
+    RUN_PHYS_RISK="true"
+fi
+
+if [ "$RUN_GLOBAL_CLUS" = "true" ]; then
+    RUN_OHIOT1DM_CLUS="true"
+    RUN_MIMIC_CLUS="true"
+    RUN_PHYS_CLUS="true"
+fi
 
 # ---------------------------
 # Helper to run scripts inside environments
@@ -101,8 +158,14 @@ if [ "$RUN_OHIOT1DM_PRE" = "true" ]; then
 fi
 
 if [ "$RUN_OHIOT1DM_MOD" = "true" ]; then
-    echo "Running OhioT1DM model for dataset ${RUN_OHIOT1DM_DATASET}..."
-    run_in_env "venv_ohiot1dm" "OhioT1DM" "python drtf.py data/processed/${RUN_OHIOT1DM_DATASET}data output/${RUN_OHIOT1DM_DATASET}"
+    if [ "$RUN_OHIOT1DM_DATASET" = "all" ]; then
+        echo "Running OhioT1DM model for all datasets (2018 and 2020)..."
+        run_in_env "venv_ohiot1dm" "OhioT1DM" "python drtf.py data/processed/2018data output/2018"
+        run_in_env "venv_ohiot1dm" "OhioT1DM" "python drtf.py data/processed/2020data output/2020"
+    else
+        echo "Running OhioT1DM model for dataset ${RUN_OHIOT1DM_DATASET}..."
+        run_in_env "venv_ohiot1dm" "OhioT1DM" "python drtf.py data/processed/${RUN_OHIOT1DM_DATASET}data output/${RUN_OHIOT1DM_DATASET}"
+    fi
 fi
 
 if [ "$RUN_MIMIC_PRE" = "true" ]; then
@@ -121,8 +184,59 @@ if [ "$RUN_MIMIC_MOD_TEST" = "true" ]; then
 fi
 
 if [ "$RUN_PHYSIONET_MOD" = "true" ]; then
-    echo "Running PhysioNetCinC model for dataset ${RUN_PHYSIONET_DATASET}..."
-    run_in_env "venv_physionetcinc" "PhysioNetCinC" "python driver.py inputs/training_set${RUN_PHYSIONET_DATASET} outputs/training_set${RUN_PHYSIONET_DATASET}"
+    if [ "$RUN_PHYSIONET_DATASET" = "all" ]; then
+        echo "Running PhysioNetCinC model for all datasets (A and B)..."
+        run_in_env "venv_physionetcinc" "PhysioNetCinC" "python driver.py input/training_setA output/training_setA"
+        run_in_env "venv_physionetcinc" "PhysioNetCinC" "python driver.py input/training_setB output/training_setB"
+    else
+        echo "Running PhysioNetCinC model for dataset ${RUN_PHYSIONET_DATASET}..."
+        run_in_env "venv_physionetcinc" "PhysioNetCinC" "python driver.py input/training_set${RUN_PHYSIONET_DATASET} output/training_set${RUN_PHYSIONET_DATASET}"
+    fi
+fi
+
+# ---------------------------
+# Risk Profiling and Clustering
+# ---------------------------
+if [ "$RUN_OHIOT1DM_RISK" = "true" ]; then
+    echo "Running Risk Profile for OhioT1DM..."
+    run_in_env "venv_ohiot1dm" "OhioT1DM" "python risk_profile.py"
+fi
+
+if [ "$RUN_OHIOT1DM_CLUS" = "true" ]; then
+    echo "Running Clustering for OhioT1DM..."
+    if [ "$RUN_OHIOT1DM_CLUS_METHOD" = "kmeans" ]; then
+        run_in_env "venv_ohiot1dm" "OhioT1DM" "python kmeans_cluster.py"
+    else
+        run_in_env "venv_ohiot1dm" "OhioT1DM" "python hierarchical_cluster.py"
+    fi
+fi
+
+if [ "$RUN_MIMIC_RISK" = "true" ]; then
+    echo "Running Risk Profile for MIMIC..."
+    run_in_env "venv_mimic" "MIMIC" "python risk_profile.py"
+fi
+
+if [ "$RUN_MIMIC_CLUS" = "true" ]; then
+    echo "Running Clustering for MIMIC..."
+    if [ "$RUN_MIMIC_CLUS_METHOD" = "kmeans" ]; then
+        run_in_env "venv_mimic" "MIMIC" "python kmeans_cluster.py"
+    else
+        run_in_env "venv_mimic" "MIMIC" "python hierarchical_cluster.py"
+    fi
+fi
+
+if [ "$RUN_PHYS_RISK" = "true" ]; then
+    echo "Running Risk Profile for PhysioNetCinC..."
+    run_in_env "venv_physionetcinc" "PhysioNetCinC" "python risk_profile.py"
+fi
+
+if [ "$RUN_PHYS_CLUS" = "true" ]; then
+    echo "Running Clustering for PhysioNetCinC..."
+    if [ "$RUN_PHYS_CLUS_METHOD" = "kmeans" ]; then
+        run_in_env "venv_physionetcinc" "PhysioNetCinC" "python kmeans_cluster.py"
+    else
+        run_in_env "venv_physionetcinc" "PhysioNetCinC" "python hierarchical_cluster.py"
+    fi
 fi
 
 echo "Pipeline completed successfully."

@@ -36,7 +36,7 @@ The PhysioNetCinC sepsis prediction dataset is publicly available and can be acc
     ```bash
     wget --user [YOUR_PHYSIONET_USERNAME] --ask-password -r -N -c -np -nH --cut-dirs=3 --reject "index.html*" https://physionet.org/files/challenge-2019/1.0.0/training/
     ```
-- **Action Required:** Place the dataset at the following path: `./PhysioNetCinC/inputs/`
+- **Action Required:** Place the dataset at the following path: `./PhysioNetCinC/input/`
 
 ## Project Setup
 
