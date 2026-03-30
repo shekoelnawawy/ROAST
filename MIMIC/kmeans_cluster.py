@@ -1,142 +1,88 @@
-import argparse
-import math
+import csv
+from sklearn import preprocessing
+from sklearn.linear_model import LogisticRegression
 import pandas as pd
 import numpy as np
 import joblib
-from scipy import stats
-from dtaidistance import dtw
-import itertools
-from tqdm import tqdm
-import os
-from scipy.cluster.hierarchy import linkage, fcluster, dendrogram
-import matplotlib.pyplot as plt
+from sklearn.cluster import KMeans
+from scipy.spatial.distance import cdist
+import argparse
 from pathlib import Path
-from sklearn.metrics import silhouette_score
+import warnings
+import os
+warnings.filterwarnings("ignore")
 
 
-def jaccard_index(a, b):
-    a_set, b_set = set(a), set(b)
-    return len(a_set & b_set) / len(a_set | b_set)
-
-
-def get_less_vulnerable_cluster(clusters, reference_indices):
-    """
-    Automatically find cluster most overlapping with original less-vulnerable set
-    """
-    unique_clusters = np.unique(clusters)
-    best_cluster = None
-    best_score = 0
-
-    for c in unique_clusters:
-        indices = np.where(clusters == c)[0]
-        score = jaccard_index(reference_indices, indices)
-        if score > best_score:
-            best_score = score
-            best_cluster = indices
-
-    return best_cluster, best_score
-
-
-def hierarchical_cluster(risk_profiles_directory, output_directory):
+def kmeans_cluster(risk_profiles_directory, output_directory):
     os.makedirs(output_directory, exist_ok=True)
-    risk_profiles = pd.DataFrame(joblib.load(risk_profiles_directory/"risk_profiles.pkl"))
 
-    timeseries = []
+    adversarial_output = joblib.load(risk_profiles_directory/"adversarial_output.pkl")
+    benign_output = joblib.load(risk_profiles_directory/"target_output.pkl")
 
-    for i in range(len(risk_profiles)):
-        df = stats.zscore(np.array(risk_profiles.iloc[i]))
-        timeseries.append(df)
+    df = pd.DataFrame(joblib.load(risk_profiles_directory/"risk_profiles.pkl"))
+    
+    most_vulnerable = []
+    for i in range(len(benign_output)):
+        if adversarial_output[i] >= 0.5 and benign_output[i] < 0.5:
+            most_vulnerable.append(i)
 
-    numbers = []
-    labels = []
-    for i in range(len(risk_profiles)):
-        numbers.append(i)
-        labels.append("p"+str(i))
+    model = KMeans(n_clusters=2)
+    model.fit(df)
+    predictions = model.predict(df)
 
-    i=0
-    dist = math.inf
+    # Get the cluster centroids
+    cluster_centers = model.cluster_centers_
 
-    for x in itertools.permutations(numbers):
-        ts = []
-        lb = []
-        for j in range(len(x)):
-            ts.append(timeseries[int(x[j])])
-            lb.append(labels[int(x[j])])
+    # Calculate the Euclidean distance between all pairs of centroids
+    # cdist returns a distance matrix where element (i, j) is the distance between centroid i and centroid j
+    distances_between_centroids = cdist(cluster_centers, cluster_centers, metric='euclidean')
 
-        # --- DTW distance matrix ---
-        ds = dtw.distance_matrix_fast(ts, show_progress=True)
-
-        # --- Hierarchical clustering ---
-        Z = linkage(ds, method='complete')
-
-        # --- Threshold settings ---
-        threshold_orig = 50
-        scales = [1.0] #[0.85, 0.9, 0.95, 1.0, 1.05, 1.1, 1.15]
-        thresholds = [threshold_orig * s for s in scales]
-
-        # --- Plot dendrogram ---
-        plt.figure(figsize=(10, 6))
-        dendrogram(Z, labels=lb, truncate_mode='lastp', p=5)
+    print('Cluster Centroids:\n', cluster_centers)
+    print('\nDistance Matrix between Centroids:\n', distances_between_centroids)
+    print('\nCluster Labels:')
+    print(model.labels_)
 
 
-        # Overlay all thresholds
-        for t in thresholds:
-            plt.axhline(y=t, linestyle='--')
+    clusterA = []
+    clusterB = []
+    for i in range(len(predictions)):
+        if predictions[i] == 0:
+            clusterA.append(i)
+        else:
+            clusterB.append(i)
 
-        plt.title("DTW + Complete Linkage Dendrogram with Threshold Sweep")
-        plt.xlabel("Patient Index")
-        plt.ylabel("DTW Distance")
-        plt.savefig(output_directory/"Dendrogram.pdf")
-        plt.close()
 
-        # --- Original clustering ---
-        clusters_orig = fcluster(Z, t=threshold_orig, criterion='distance')
-        original_cluster_id = 1
-        less_vuln_orig = np.where(clusters_orig == original_cluster_id)[0]
+    countA = 0
+    countB = 0
+    for i in range(len(most_vulnerable)):
+        if most_vulnerable[i] in clusterA:
+            countA += 1
+        elif most_vulnerable[i] in clusterB:
+            countB += 1
 
-        break
 
-        # results = {}
+    print('Cluster A Patients: '+str(len(clusterA)))
+    print('Cluster B Patients: '+str(len(clusterB)))
+    print('Most Vulnerable in Cluster A: '+str(countA))
+    print('Most Vulnerable in Cluster B: '+str(countB))
+    print('Percentage of Most Vulnerable in Cluster A: '+ str((countA/(countA+countB))*100))
+    print('Percentage of Most Vulnerable in Cluster B: '+ str((countB/(countA+countB))*100))
 
-        # for scale in scales:
-        #     t_new = threshold_orig * scale
-        #     clusters_new = fcluster(Z, t=t_new, criterion='distance')
+    if countA > countB:
+        joblib.dump(np.array(clusterA), output_directory/"MoreVulnerablePatientIDs.pkl")
+        joblib.dump(np.array(clusterB), output_directory/"LessVulnerablePatientIDs.pkl")
+    else:
+        joblib.dump(np.array(clusterA), output_directory/"LessVulnerablePatientIDs.pkl")
+        joblib.dump(np.array(clusterB), output_directory/"MoreVulnerablePatientIDs.pkl")
 
-        #     matched_cluster, j_score = get_less_vulnerable_cluster(clusters_new, less_vuln_orig)
-
-        #     # silhouette = silhouette_score(ds, clusters_new, metric='precomputed')
-
-        #     results[scale] = {
-        #         "threshold": t_new,
-        #         "jaccard": j_score,
-        #         # "silhouette": silhouette,
-        #         "cluster_size": len(matched_cluster)
-        #     }
-
-        # print(results)
-
-        # i += 1
-
-    AllPatientIDs = np.arange(0, len(risk_profiles))
-    LessVulnerablePatientIDs = np.array(less_vuln_orig)
-    MoreVulnerablePatientIDs = list(set(AllPatientIDs) - set(LessVulnerablePatientIDs))
-
-    joblib.dump(AllPatientIDs, output_directory/"AllPatientIDs.pkl")
-    joblib.dump(LessVulnerablePatientIDs, output_directory/"LessVulnerablePatientIDs.pkl")
-    joblib.dump(MoreVulnerablePatientIDs, output_directory/"MoreVulnerablePatientIDs.pkl")
-
-    print("All Patient IDs: ", end="")
-    print(np.array(labels)[list(AllPatientIDs)])
-    print("Less Vulnerable Patient IDs: ", end="")
-    print(np.array(labels)[list(LessVulnerablePatientIDs)])
-    print("More Vulnerable Patient IDs: ", end="")
-    print(np.array(labels)[list(MoreVulnerablePatientIDs)])
+    all_patient_ids = sorted(clusterA + clusterB)
+    joblib.dump(np.array(all_patient_ids), output_directory/"AllPatientIDs.pkl")
 
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(
-        description="Run MIMIC script: python cluster.py <risk_profiles_directory> <output_directory>",
-        epilog="Example: python cluster.py output output/cluster_output"
+        description="Run MIMIC script: python kmeans_cluster.py <risk_profiles_directory> <output_directory>",
+        epilog="Example: python kmeans_cluster.py output output/cluster_output"
     )
     parser.add_argument("risk_profiles_dir", nargs="?", default="output", help="Directory containing risk profiles")
     parser.add_argument("out_dir", nargs="?", default="output/cluster_output", help="Output directory")
@@ -148,4 +94,4 @@ if __name__ == '__main__':
     output_directory = SCRIPT_DIR / args.out_dir
     risk_profiles_directory = SCRIPT_DIR / args.risk_profiles_dir
 
-    hierarchical_cluster(risk_profiles_directory, output_directory)
+    kmeans_cluster(risk_profiles_directory, output_directory)

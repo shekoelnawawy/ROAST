@@ -90,7 +90,7 @@ def hierarchical_cluster(risk_profiles_directory, output_directory):
 
     AllPatientIDs = np.arange(0, 12)
     LessVulnerablePatientIDs = np.array(less_vuln_orig)
-    MoreVulnerablePatientIDs = list(set(AllPatientIDs) - set(LessVulnerablePatientIDs))
+    MoreVulnerablePatientIDs = np.array(list(set(AllPatientIDs) - set(LessVulnerablePatientIDs)))
 
     joblib.dump(AllPatientIDs, output_directory/"AllPatientIDs.pkl")
     joblib.dump(LessVulnerablePatientIDs, output_directory/"LessVulnerablePatientIDs.pkl")
@@ -107,8 +107,8 @@ def hierarchical_cluster(risk_profiles_directory, output_directory):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(
-        description="Run OhioT1DM script: python cluster.py <risk_profiles_directory> <output_directory>",
-        epilog="Example: python cluster.py output output/cluster_output"
+        description="Run OhioT1DM script: python hierarchical_cluster.py <risk_profiles_directory> <output_directory>",
+        epilog="Example: python hierarchical_cluster.py output output/cluster_output"
     )
     parser.add_argument("risk_profiles_dir", nargs="?", default="output", help="Directory containing risk profiles")
     parser.add_argument("out_dir", nargs="?", default="output/cluster_output", help="Output directory")

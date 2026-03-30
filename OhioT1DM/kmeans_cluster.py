@@ -1,114 +1,138 @@
-import argparse
-from sklearn import preprocessing
-from sklearn.linear_model import LogisticRegression
 import pandas as pd
-import warnings
-import math
-import numpy as np
 import joblib
-from scipy import stats
-from dtaidistance import dtw
-import itertools
-from tqdm import tqdm
+import numpy as np
+import glob
 import os
-from scipy.cluster.hierarchy import linkage, fcluster, dendrogram
-import matplotlib.pyplot as plt
 from pathlib import Path
-from sklearn.linear_model import LinearRegression
-from sklearn.metrics import silhouette_score
-from scipy.spatial.distance import squareform
+from sklearn import preprocessing
+from sklearn.cluster import KMeans
+from scipy.spatial.distance import cdist
+import argparse
+from pathlib import Path
+from tslearn.clustering import TimeSeriesKMeans
 
-warnings.filterwarnings("ignore")
-
-def hierarchical_cluster(risk_profiles_directory, output_directory):
+def calculate_percentage_mispredictions(risk_profiles_directory, output_directory):
+    percentage_mispredictions = open(output_directory/"percentage_mispredictions.csv", 'w')
+    percentage_mispredictions.write('TrainingSet,PatientID,PercentageMisprediction\n')
+    
     years = ['2018', '2020']
     patients_2018 = ['559', '563', '570', '575', '588', '591']
     patients_2020 = ['540', '544', '552', '567', '584', '596']
 
-    os.makedirs(output_directory, exist_ok=True)
-
-    timeseries = joblib.load(risk_profiles_directory/"risk_profiles.pkl")
-
-    numbers = []
-    labels = []
-    for i in range(len(patients_2018)):
-        numbers.append(i)
-        labels.append("A_" + str(i))
-    for i in range(len(patients_2020)):
-        numbers.append(i + len(patients_2018))
-        labels.append("B_" + str(i))
-
-    # --- Threshold settings ---
-    threshold_orig = 4.5e7
-
-    dist = math.inf
-    for x in itertools.permutations(numbers):
-        ts = []
-        lb = []
-        for j in range(len(x)):
-            ts.append(timeseries[int(x[j])])
-            lb.append(labels[int(x[j])])
-        # --- DTW distance matrix ---
-        ds = dtw.distance_matrix_fast(ts, show_progress=True)
-        # Ensure it's float (important for division)
-        ds = ds.astype(float)
-
-        # --- Min–max normalization ---
-        d_min = np.min(ds)
-        d_max = np.max(ds)
-
-        if d_max > d_min:
-            ds_norm = (ds - d_min) / (d_max - d_min)
+    
+    for year in years:
+        if year == '2018':
+            patients = patients_2018
         else:
-            # Edge case: all distances identical
-            ds_norm = np.zeros_like(ds)
+            patients = patients_2020
+        for patient in patients:
+            try:
+                adversarial_output_path = risk_profiles_directory/year/patient/"predicted_output.pkl"
+                benign_output_path = risk_profiles_directory/year/patient/"actual_output.pkl"
+                adversarial_output = joblib.load(adversarial_output_path)
+                benign_output = joblib.load(benign_output_path)
+            except FileNotFoundError:
+                print(f"{year} results not available. Skipping...")
+                continue
+            adversarial_output = adversarial_output.flatten()
+            benign_output = benign_output.flatten()
+            
 
-        # --- Convert to condensed form ---
-        ds = squareform(ds_norm)
 
-        # --- Hierarchical clustering ---
-        Z = linkage(ds, method='complete')
+            target_values = 0
+            mispredictions = 0
+            for i in range(len(benign_output)):
+                if 70 < benign_output[i] < 180:
+                    target_values += 1
+                    if adversarial_output[i] > 180:
+                        mispredictions += 1
+                elif benign_output[i] < 70:
+                    target_values += 1
+                    if adversarial_output[i] > 180:
+                        mispredictions += 1
 
-        # --- Plot dendrogram ---
-        plt.figure(figsize=(10, 6))
-        dendrogram(Z, labels=lb)#, truncate_mode='lastp', p=5)
+            percentage_mispredictions.write(year+','+patient+','+f"{(mispredictions/target_values)*100:.2f}"+'\n')
+            
+    percentage_mispredictions.close()
 
-        # Overlay all thresholds
-        plt.axhline(y=threshold_orig, linestyle='--')
+def kmeans_cluster(risk_profiles_directory, output_directory):
+    os.makedirs(output_directory, exist_ok=True)
+    risk_profiles = joblib.load(risk_profiles_directory/"risk_profiles.pkl")
+    patients = ['559', '563', '570', '575', '588', '591', '540', '544', '552', '567', '584', '596']
+    unique_PatientIDs = np.arange(len(risk_profiles))
 
-        plt.title("DTW + Complete Linkage Dendrogram with Threshold Sweep")
-        plt.xlabel("Patient Index")
-        plt.ylabel("DTW Distance")
-        plt.savefig(output_directory/"Dendrogram.pdf")
-        plt.close()
+    ts = [x[1] for x in risk_profiles]
 
-        # --- Original clustering ---
-        clusters_orig = fcluster(Z, t=2, criterion='maxclust')
-        original_cluster_id = 1
-        less_vuln_orig = np.where(clusters_orig == original_cluster_id)[0]
-        break
+    model = TimeSeriesKMeans(
+        n_clusters=2,
+        metric="dtw",
+        verbose=True
+    )
 
-    AllPatientIDs = np.arange(0, 12)
-    LessVulnerablePatientIDs = np.array(less_vuln_orig)
-    MoreVulnerablePatientIDs = list(set(AllPatientIDs) - set(LessVulnerablePatientIDs))
+    predictions = model.fit_predict(ts)
 
-    joblib.dump(AllPatientIDs, output_directory/"AllPatientIDs.pkl")
-    joblib.dump(LessVulnerablePatientIDs, output_directory/"LessVulnerablePatientIDs.pkl")
-    joblib.dump(MoreVulnerablePatientIDs, output_directory/"MoreVulnerablePatientIDs.pkl")
+    
 
-    print("All Patient IDs: ", end="")
-    print(np.array(labels)[list(AllPatientIDs)])
-    print("Less Vulnerable Patient IDs: ", end="")
-    print(np.array(labels)[list(LessVulnerablePatientIDs)])
-    print("More Vulnerable Patient IDs: ", end="")
-    print(np.array(labels)[list(MoreVulnerablePatientIDs)])
+    # Get the cluster centroids
+    # cluster_centers = model.cluster_centers_
+
+    # Calculate the Euclidean distance between all pairs of centroids
+    # cdist returns a distance matrix where element (i, j) is the distance between centroid i and centroid j
+    # distances_between_centroids = cdist(cluster_centers, cluster_centers, metric='euclidean')
+
+    # print('Cluster Centroids:\n', cluster_centers)
+    # print('\nDistance Matrix between Centroids:\n', distances_between_centroids)
+    # print('\nCluster Labels:')
+    # print(model.labels_)
+
+    calculate_percentage_mispredictions(risk_profiles_directory, output_directory)
+    mispredictions = pd.read_csv(output_directory/"percentage_mispredictions.csv")
+
+
+    most_vulnerable_threshold = 20
+    most_vulnerable = mispredictions[mispredictions['PercentageMisprediction']>most_vulnerable_threshold]['PatientID'].tolist()
+    most_vulnerable = [patients.index(str(pid)) for pid in most_vulnerable]
+
+    clusterA = []
+    clusterB = []
+    for i in range(len(predictions)):
+        if predictions[i] == 0:
+            clusterA.append(unique_PatientIDs[i])
+        else:
+            clusterB.append(unique_PatientIDs[i])
+
+    countA = 0
+    countB = 0
+    for i in range(len(most_vulnerable)):
+        if most_vulnerable[i] in clusterA:
+            countA += 1
+        elif most_vulnerable[i] in clusterB:
+            countB += 1
+
+    print('Cluster A Patients: '+str(len(clusterA)))
+    print('Cluster B Patients: '+str(len(clusterB)))
+    print('Most Vulnerable in Cluster A: '+str(countA))
+    print('Most Vulnerable in Cluster B: '+str(countB))
+    print('Percentage of Most Vulnerable in Cluster A: '+ str((countA/(countA+countB))*100))
+    print('Percentage of Most Vulnerable in Cluster B: '+ str((countB/(countA+countB))*100))
+
+
+    if countA > countB:
+        joblib.dump(np.array(clusterA), output_directory/"MoreVulnerablePatientIDs.pkl")
+        joblib.dump(np.array(clusterB), output_directory/"LessVulnerablePatientIDs.pkl")
+    else:
+        joblib.dump(np.array(clusterA), output_directory/"LessVulnerablePatientIDs.pkl")
+        joblib.dump(np.array(clusterB), output_directory/"MoreVulnerablePatientIDs.pkl")
+
+    all_patient_ids = sorted(clusterA + clusterB)
+    joblib.dump(np.array(all_patient_ids), output_directory/"AllPatientIDs.pkl")
 
 
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(
-        description="Run OhioT1DM script: python cluster.py <risk_profiles_directory> <output_directory>",
-        epilog="Example: python cluster.py output output/cluster_output"
+        description="Run OhioT1DM script: python kmeans_cluster.py <risk_profiles_directory> <output_directory>",
+        epilog="Example: python kmeans_cluster.py output output/cluster_output"
     )
     parser.add_argument("risk_profiles_dir", nargs="?", default="output", help="Directory containing risk profiles")
     parser.add_argument("out_dir", nargs="?", default="output/cluster_output", help="Output directory")
@@ -120,4 +144,4 @@ if __name__ == '__main__':
     output_directory = SCRIPT_DIR / args.out_dir
     risk_profiles_directory = SCRIPT_DIR / args.risk_profiles_dir
 
-    hierarchical_cluster(risk_profiles_directory, output_directory)
+    kmeans_cluster(risk_profiles_directory, output_directory)
