@@ -54,6 +54,11 @@ RUN_PHYS_RISK=$(yq e '.physionetcinc_risk_profile' "$CONFIG_FILE")
 RUN_PHYS_CLUS=$(yq e '.physionetcinc_cluster' "$CONFIG_FILE")
 RUN_PHYS_CLUS_METHOD=$(yq e '.physionetcinc_cluster_method' "$CONFIG_FILE")
 
+# Generate Defense Dataset flags
+RUN_OHIOT1DM_GEN_DEF=$(yq e '.ohiot1dm_generate_defense_datasets' "$CONFIG_FILE")
+RUN_MIMIC_GEN_DEF=$(yq e '.mimic_generate_defense_datasets' "$CONFIG_FILE")
+RUN_PHYS_GEN_DEF=$(yq e '.physionetcinc_generate_defense_datasets' "$CONFIG_FILE")
+
 RUN_GLOBAL_RISK="false"
 RUN_GLOBAL_CLUS="false"
 
@@ -79,6 +84,9 @@ for arg in "$@"; do
         --physionetcinc_risk_profile=*) RUN_PHYS_RISK="${arg#*=}" ;;
         --physionetcinc_cluster=*)      RUN_PHYS_CLUS="${arg#*=}" ;;
         --physionetcinc_cluster_method=*) RUN_PHYS_CLUS_METHOD="${arg#*=}" ;;
+        --ohiot1dm_generate_defense_datasets=*) RUN_OHIOT1DM_GEN_DEF="${arg#*=}" ;;
+        --mimic_generate_defense_datasets=*) RUN_MIMIC_GEN_DEF="${arg#*=}" ;;
+        --physionetcinc_generate_defense_datasets=*) RUN_PHYS_GEN_DEF="${arg#*=}" ;;
         --risk_profile=*)             RUN_GLOBAL_RISK="${arg#*=}" ;;
         --cluster=*)                  RUN_GLOBAL_CLUS="${arg#*=}" ;;
         -h|--help)
@@ -91,6 +99,9 @@ for arg in "$@"; do
             echo "       [--ohiot1dm_risk_profile=true|false] [--ohiot1dm_cluster=true|false] [--ohiot1dm_cluster_method=hierarchical|kmeans]"
             echo "       [--mimic_risk_profile=true|false] [--mimic_cluster=true|false] [--mimic_cluster_method=hierarchical|kmeans]"
             echo "       [--physionetcinc_risk_profile=true|false] [--physionetcinc_cluster=true|false] [--physionetcinc_cluster_method=hierarchical|kmeans]"
+            echo "       [--ohiot1dm_generate_defense_datasets=true|false]"
+            echo "       [--mimic_generate_defense_datasets=true|false]"
+            echo "       [--physionetcinc_generate_defense_datasets=true|false]"
             exit 0
             ;;
         *) echo "Unknown option: $arg"; exit 1 ;;
@@ -116,6 +127,10 @@ RUN_PHYS_CLUS=$(echo "$RUN_PHYS_CLUS" | tr '[:upper:]' '[:lower:]')
 RUN_OHIOT1DM_CLUS_METHOD=$(echo "$RUN_OHIOT1DM_CLUS_METHOD" | tr '[:upper:]' '[:lower:]')
 RUN_MIMIC_CLUS_METHOD=$(echo "$RUN_MIMIC_CLUS_METHOD" | tr '[:upper:]' '[:lower:]')
 RUN_PHYS_CLUS_METHOD=$(echo "$RUN_PHYS_CLUS_METHOD" | tr '[:upper:]' '[:lower:]')
+
+RUN_OHIOT1DM_GEN_DEF=$(echo "$RUN_OHIOT1DM_GEN_DEF" | tr '[:upper:]' '[:lower:]')
+RUN_MIMIC_GEN_DEF=$(echo "$RUN_MIMIC_GEN_DEF" | tr '[:upper:]' '[:lower:]')
+RUN_PHYS_GEN_DEF=$(echo "$RUN_PHYS_GEN_DEF" | tr '[:upper:]' '[:lower:]')
 
 RUN_GLOBAL_RISK=$(echo "$RUN_GLOBAL_RISK" | tr '[:upper:]' '[:lower:]')
 RUN_GLOBAL_CLUS=$(echo "$RUN_GLOBAL_CLUS" | tr '[:upper:]' '[:lower:]')
@@ -237,6 +252,24 @@ if [ "$RUN_PHYS_CLUS" = "true" ]; then
     else
         run_in_env "venv_physionetcinc" "PhysioNetCinC" "python hierarchical_cluster.py"
     fi
+fi
+
+# ---------------------------
+# Generate Defense Datasets
+# ---------------------------
+if [ "$RUN_OHIOT1DM_GEN_DEF" = "true" ]; then
+    echo "Generating Defense Dataset for OhioT1DM..."
+    run_in_env "venv_ohiot1dm" "OhioT1DM" "python generate_defense_dataset.py"
+fi
+
+if [ "$RUN_MIMIC_GEN_DEF" = "true" ]; then
+    echo "Generating Defense Dataset for MIMIC..."
+    run_in_env "venv_mimic" "MIMIC" "python generate_defense_dataset.py"
+fi
+
+if [ "$RUN_PHYS_GEN_DEF" = "true" ]; then
+    echo "Generating Defense Dataset for PhysioNetCinC..."
+    run_in_env "venv_physionetcinc" "PhysioNetCinC" "python generate_defense_dataset.py"
 fi
 
 echo "Pipeline completed successfully."

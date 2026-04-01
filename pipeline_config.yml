@@ -6,6 +6,7 @@ ohiot1dm_attack_type: "URET"  # Options: URET, FGSM
 ohiot1dm_risk_profile: false
 ohiot1dm_cluster: false
 ohiot1dm_cluster_method: "hierarchical"  # Options: hierarchical, kmeans
+ohiot1dm_generate_defense_datasets: false
 
 # MIMIC Pipeline
 mimic_preprocess: false
@@ -15,6 +16,7 @@ mimic_attack_type: "URET"  # Options: URET, FGSM
 mimic_risk_profile: false
 mimic_cluster: false
 mimic_cluster_method: "hierarchical"  # Options: hierarchical, kmeans
+mimic_generate_defense_datasets: false
 
 # PhysioNetCinC Pipeline
 physionetcinc_model: false
@@ -23,3 +25,4 @@ physionetcinc_attack_type: "URET"  # Options: URET, FGSM
 physionetcinc_risk_profile: false
 physionetcinc_cluster: false
 physionetcinc_cluster_method: "hierarchical"  # Options: hierarchical, kmeans
+physionetcinc_generate_defense_datasets: false
