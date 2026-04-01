@@ -8,19 +8,32 @@ from pathlib import Path
 
 
 def create_mixed_data(benign_data, adversarial_data, index):
-    """Create mixed benign/adversarial data with random selection."""
-    instances = []
-    for i in range(len(adversarial_data)):
-        if adversarial_data[i][11][0] != benign_data[i][11][0]:
-            rand = random.randint(0, 1)
-            if rand % 2 == 0:
-                instance = [index, benign_data[i][11][0], benign_data[i][11][1], benign_data[i][11][5], benign_data[i][11][2], 0]
-            else:
-                instance = [index, adversarial_data[i][11][0], adversarial_data[i][11][1], adversarial_data[i][11][5], adversarial_data[i][11][2], 1]
-        else:
-            instance = [index, benign_data[i][11][0], benign_data[i][11][1], benign_data[i][11][5], benign_data[i][11][2], 0]
-        instances.append(instance)
-    return instances
+    """Create mixed benign/adversarial data with random selection (optimized)."""
+    n = len(adversarial_data)
+
+    # Extract relevant fields once
+    benign_vals = np.array([benign_data[i][11] for i in range(n)])
+    adversarial_vals = np.array([adversarial_data[i][11] for i in range(n)])
+
+    # Check where data differs
+    differs = benign_vals[:, 0] != adversarial_vals[:, 0]
+
+    # Generate random selection for all rows at once
+    random_select = np.random.randint(0, 2, size=n) == 0
+
+    # Select which data to use (benign when different and random=0, or when same)
+    use_benign = ~differs | random_select
+
+    # Build instances array
+    instances = np.zeros((n, 6))
+    instances[:, 0] = index
+    instances[:, 1] = np.where(use_benign, benign_vals[:, 0], adversarial_vals[:, 0])
+    instances[:, 2] = np.where(use_benign, benign_vals[:, 1], adversarial_vals[:, 1])
+    instances[:, 3] = np.where(use_benign, benign_vals[:, 5], adversarial_vals[:, 5])
+    instances[:, 4] = np.where(use_benign, benign_vals[:, 2], adversarial_vals[:, 2])
+    instances[:, 5] = (~use_benign & differs).astype(int)
+
+    return instances.tolist()
 
 
 def generate_defense_dataset(cluster_dir, out_dir):

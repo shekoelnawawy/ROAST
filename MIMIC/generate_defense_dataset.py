@@ -7,20 +7,27 @@ from sklearn.model_selection import KFold, train_test_split
 import random
 
 def create_mixed_data(benign_data, adversarial_data, features):
-    """Create mixed benign/adversarial data with random selection."""
-    instances = []
-    for i in range(len(benign_data)):
-        for j in range(72):
-            if (benign_data[i][j] != adversarial_data[i][j]).any():
-                rand = random.randint(0, 1)
-                if rand % 2 == 0:
-                    instance = np.append(benign_data[i][j][features], 0)
-                else:
-                    instance = np.append(adversarial_data[i][j][features], 1)
-            else:
-                instance = np.append(benign_data[i][j][features], 0)
-            instances.append(instance)
-    return instances
+    """Create mixed benign/adversarial data with random selection (vectorized)."""
+    # Extract features and reshape for comparison
+    benign_selected = benign_data[:, :, features]  # Shape: (n_samples, 72, n_features)
+    adversarial_selected = adversarial_data[:, :, features]
+
+    # Check where data differs (across samples and timesteps)
+    differs = (benign_selected != adversarial_selected).any(axis=2)  # Shape: (n_samples, 72)
+
+    # Random selection for differing entries
+    rand_selection = np.random.randint(0, 2, size=differs.shape) == 0
+
+    # Create mixed data using where
+    mixed = np.where(
+        differs[:, :, np.newaxis],
+        np.where(rand_selection[:, :, np.newaxis], benign_selected, adversarial_selected),
+        benign_selected
+    )
+
+    # Add label column
+    labels = (differs & ~rand_selection)[:, :, np.newaxis].astype(int)
+    return np.concatenate([mixed, labels], axis=2)
 
 def generate_defense_dataset(cluster_dir, out_dir):
     os.makedirs(out_dir, exist_ok=True)
@@ -30,18 +37,13 @@ def generate_defense_dataset(cluster_dir, out_dir):
     adversarial_data = joblib.load(data_dir / 'adversarial_data.pkl').reshape(-1,72, 432)
     benign_data = joblib.load(data_dir / 'benign_data.pkl').reshape(-1,72, 432)
 
-    # Create mixed data with random selection
-    instances = create_mixed_data(benign_data, adversarial_data, features)
-    data = np.array(instances).reshape(-1, 72, len(features) + 1)
+    # Create mixed data with random selection (already shape (n_samples, 72, n_features+1))
+    data = create_mixed_data(benign_data, adversarial_data, features)
 
-    # Create benign-only data for 'all'
-    benign_instances = []
-    for i in range(len(benign_data)):
-        for j in range(72):
-            instance = np.append(benign_data[i][j][features], 0)
-            benign_instances.append(instance)
-
-    data_benign = np.array(benign_instances).reshape(-1, 72, len(features) + 1)
+    # Create benign-only data for 'all' (vectorized)
+    benign_selected = benign_data[:, :, features]
+    benign_labels = np.zeros((benign_selected.shape[0], benign_selected.shape[1], 1), dtype=int)
+    data_benign = np.concatenate([benign_selected, benign_labels], axis=2)
 
     LessVulnerablePatientIDs = joblib.load(cluster_dir / 'LessVulnerablePatientIDs.pkl')
     MoreVulnerablePatientIDs = joblib.load(cluster_dir / 'MoreVulnerablePatientIDs.pkl')

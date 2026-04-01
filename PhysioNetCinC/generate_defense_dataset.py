@@ -6,27 +6,31 @@ from tqdm import tqdm
 import os
 import argparse
 from sklearn.model_selection import KFold, train_test_split
-import random
 
 # Create mixed benign/adversarial data for less, more, samples
 def create_mixed_data(data_benign, data_adversarial):
-    mixed_data = []
     # Feature columns (all except PatientID and Adversarial)
     feature_columns = [col for col in data_benign.columns if col != 'PatientID']
 
-    for idx in range(len(data_benign)):
-        benign_row = data_benign.iloc[idx][feature_columns].to_numpy()
-        adversarial_row = data_adversarial.iloc[idx][feature_columns].to_numpy()
+    benign_array = data_benign[feature_columns].to_numpy()
+    adversarial_array = data_adversarial[feature_columns].to_numpy()
 
-        if not np.array_equal(benign_row, adversarial_row):
-            rand = random.randint(0, 1)
-            if rand % 2 == 0:
-                mixed_data.append(np.append(benign_row, 0))
-            else:
-                mixed_data.append(np.append(adversarial_row, 1))
-        else:
-            mixed_data.append(np.append(benign_row, 0))
-    return np.array(mixed_data)
+    # Find rows that differ
+    differs = (benign_array != adversarial_array).any(axis=1)
+
+    # Random selection for differing rows
+    rand_selection = np.random.randint(0, 2, size=len(differs)) == 0
+
+    # Create mixed data
+    mixed_array = np.where(
+        differs[:, np.newaxis],
+        np.where(rand_selection[:, np.newaxis], benign_array, adversarial_array),
+        benign_array
+    )
+
+    # Add label column (0 for benign, 1 for adversarial selected rows)
+    labels = (differs & ~rand_selection).astype(int)
+    return np.hstack([mixed_array, labels[:, np.newaxis]])
 
 def get_benign_and_adversarial_data(data_dir):
     training_sets = ["training_setA", "training_setB"]
@@ -82,6 +86,49 @@ def get_benign_and_adversarial_data(data_dir):
     joblib.dump(adversarial_data, data_dir / "adversarial_data.pkl")
 
 
+def normalize_patient_id(value):
+    """Normalize patient identifiers to a comparable string format."""
+    return str(value).strip()
+
+
+def map_cluster_ids_to_patient_ids(cluster_ids, valid_patient_ids, data_dir):
+    """
+    Map cluster IDs to real patient IDs.
+
+    Cluster outputs may contain integer indices instead of true patient identifiers.
+    In that case, use output/risk_profiles.pkl as the index->PatientID lookup.
+    """
+    normalized_valid_ids = {normalize_patient_id(pid) for pid in valid_patient_ids}
+    normalized_cluster_ids = [normalize_patient_id(pid) for pid in cluster_ids]
+
+    # Fast path: cluster IDs already match patient IDs.
+    direct_matches = sum(pid in normalized_valid_ids for pid in normalized_cluster_ids)
+    if direct_matches > 0:
+        return normalized_cluster_ids
+
+    risk_profiles_path = data_dir / 'risk_profiles.pkl'
+    if not risk_profiles_path.exists():
+        return normalized_cluster_ids
+
+    risk_profiles = joblib.load(risk_profiles_path)
+    index_to_patient_id = [normalize_patient_id(record[0]) for record in risk_profiles]
+
+    mapped_ids = []
+    for pid in cluster_ids:
+        try:
+            idx = int(pid)
+        except (TypeError, ValueError):
+            mapped_ids.append(normalize_patient_id(pid))
+            continue
+
+        if 0 <= idx < len(index_to_patient_id):
+            mapped_ids.append(index_to_patient_id[idx])
+        else:
+            mapped_ids.append(normalize_patient_id(pid))
+
+    return mapped_ids
+
+
 def generate_defense_dataset(cluster_dir, out_dir):
     os.makedirs(out_dir, exist_ok=True)
     data_dir = Path(__file__).resolve().parent / "output"
@@ -95,36 +142,60 @@ def generate_defense_dataset(cluster_dir, out_dir):
     AllPatientsDataBenign = joblib.load(file_path_benign)
     AllPatientsDataAdversarial = joblib.load(file_path_adversarial)
 
+    # Ensure IDs are comparable regardless of original dtype.
+    AllPatientsDataBenign['PatientID'] = AllPatientsDataBenign['PatientID'].map(normalize_patient_id)
+    AllPatientsDataAdversarial['PatientID'] = AllPatientsDataAdversarial['PatientID'].map(normalize_patient_id)
+
     AllPatientIDs = joblib.load(cluster_dir / 'AllPatientIDs.pkl')
     MoreVulnerablePatientIDs = joblib.load(cluster_dir / 'MoreVulnerablePatientIDs.pkl')
     LessVulnerablePatientIDs = joblib.load(cluster_dir / 'LessVulnerablePatientIDs.pkl')
 
+    valid_patient_ids = set(AllPatientsDataBenign['PatientID'].values)
+    AllPatientIDs = map_cluster_ids_to_patient_ids(AllPatientIDs, valid_patient_ids, data_dir)
+    MoreVulnerablePatientIDs = map_cluster_ids_to_patient_ids(MoreVulnerablePatientIDs, valid_patient_ids, data_dir)
+    LessVulnerablePatientIDs = map_cluster_ids_to_patient_ids(LessVulnerablePatientIDs, valid_patient_ids, data_dir)
+
     # Create mixed data with random selection
     all_mixed_data = create_mixed_data(AllPatientsDataBenign, AllPatientsDataAdversarial)
 
-    # Filter by patient IDs for less and more
-    benign_less_indices = AllPatientsDataBenign[AllPatientsDataBenign['PatientID'].isin(LessVulnerablePatientIDs)].index
-    benign_more_indices = AllPatientsDataBenign[AllPatientsDataBenign['PatientID'].isin(MoreVulnerablePatientIDs)].index
+    # Create a mapping of PatientID to row indices
+    patient_id_to_indices = {}
+    for idx, patient_id in enumerate(AllPatientsDataBenign['PatientID'].values):
+        if patient_id not in patient_id_to_indices:
+            patient_id_to_indices[patient_id] = []
+        patient_id_to_indices[patient_id].append(idx)
 
-    mixed_less = all_mixed_data[benign_less_indices]
-    mixed_more = all_mixed_data[benign_more_indices]
+    # Get indices for less and more vulnerable patients
+    less_indices = []
+    more_indices = []
+    for patient_id in LessVulnerablePatientIDs:
+        less_indices.extend(patient_id_to_indices.get(patient_id, []))
+    for patient_id in MoreVulnerablePatientIDs:
+        more_indices.extend(patient_id_to_indices.get(patient_id, []))
 
-    # less, more, samples use mixed data (with random selection)
-    np.save(out_dir / 'sepsis_train_less_0.npy', mixed_less)
-    np.save(out_dir / 'sepsis_train_more_0.npy', mixed_more)
+    if len(less_indices) == 0 or len(more_indices) == 0:
+        raise ValueError(
+            "Could not map vulnerable patient IDs to data rows. "
+            "Check whether cluster IDs and PatientID formats are aligned."
+        )
+
+    # Save less and more
+    np.save(out_dir / 'sepsis_train_less_0.npy', all_mixed_data[less_indices])
+    np.save(out_dir / 'sepsis_train_more_0.npy', all_mixed_data[more_indices])
 
     # all uses benign data only
     np.save(out_dir / 'sepsis_train_all_0.npy', AllPatientsDataBenign.drop(columns=['PatientID']).to_numpy().astype(float))
 
     for run in range(5):
-
         split = train_test_split(AllPatientIDs, train_size=len(LessVulnerablePatientIDs))
-        train_indices = split[0]
-        # test_indices = split[1][:math.floor(0.2 * len(AllPatientIDs))]
+        train_indices_patients = split[0]
 
-        train_mask = AllPatientsDataBenign['PatientID'].isin(train_indices)
-        mixed_samples = all_mixed_data[train_mask.to_numpy()]
-        np.save(out_dir / f'sepsis_train_samples_{run}.npy', mixed_samples)
+        # Get row indices for these patients
+        sample_indices = []
+        for patient_id in train_indices_patients:
+            sample_indices.extend(patient_id_to_indices.get(patient_id, []))
+
+        np.save(out_dir / f'sepsis_train_samples_{run}.npy', all_mixed_data[sample_indices])
 
 
     cv=0
