@@ -1,0 +1,6 @@
+tensorflow[and-cuda] ; platform_system == "Linux"
+tensorflow ; platform_system != "Linux"
+scipy
+pandas
+scikit-learn
+matplotlib

@@ -59,6 +59,14 @@ RUN_OHIOT1DM_GEN_DEF=$(yq e '.ohiot1dm_generate_defense_datasets' "$CONFIG_FILE"
 RUN_MIMIC_GEN_DEF=$(yq e '.mimic_generate_defense_datasets' "$CONFIG_FILE")
 RUN_PHYS_GEN_DEF=$(yq e '.physionetcinc_generate_defense_datasets' "$CONFIG_FILE")
 
+# Evaluate Defense flags
+RUN_OHIOT1DM_EVAL_DEF=$(yq e '.ohiot1dm_evaluate_defense' "$CONFIG_FILE")
+RUN_OHIOT1DM_DEF_TYPE=$(yq e '.ohiot1dm_defense_type' "$CONFIG_FILE")
+RUN_MIMIC_EVAL_DEF=$(yq e '.mimic_evaluate_defense' "$CONFIG_FILE")
+RUN_MIMIC_DEF_TYPE=$(yq e '.mimic_defense_type' "$CONFIG_FILE")
+RUN_PHYS_EVAL_DEF=$(yq e '.physionetcinc_evaluate_defense' "$CONFIG_FILE")
+RUN_PHYS_DEF_TYPE=$(yq e '.physionetcinc_defense_type' "$CONFIG_FILE")
+
 RUN_GLOBAL_RISK="false"
 RUN_GLOBAL_CLUS="false"
 
@@ -87,6 +95,12 @@ for arg in "$@"; do
         --ohiot1dm_generate_defense_datasets=*) RUN_OHIOT1DM_GEN_DEF="${arg#*=}" ;;
         --mimic_generate_defense_datasets=*) RUN_MIMIC_GEN_DEF="${arg#*=}" ;;
         --physionetcinc_generate_defense_datasets=*) RUN_PHYS_GEN_DEF="${arg#*=}" ;;
+        --ohiot1dm_evaluate_defense=*) RUN_OHIOT1DM_EVAL_DEF="${arg#*=}" ;;
+        --ohiot1dm_defense_type=*) RUN_OHIOT1DM_DEF_TYPE="${arg#*=}" ;;
+        --mimic_evaluate_defense=*) RUN_MIMIC_EVAL_DEF="${arg#*=}" ;;
+        --mimic_defense_type=*) RUN_MIMIC_DEF_TYPE="${arg#*=}" ;;
+        --physionetcinc_evaluate_defense=*) RUN_PHYS_EVAL_DEF="${arg#*=}" ;;
+        --physionetcinc_defense_type=*) RUN_PHYS_DEF_TYPE="${arg#*=}" ;;
         --risk_profile=*)             RUN_GLOBAL_RISK="${arg#*=}" ;;
         --cluster=*)                  RUN_GLOBAL_CLUS="${arg#*=}" ;;
         -h|--help)
@@ -102,6 +116,9 @@ for arg in "$@"; do
             echo "       [--ohiot1dm_generate_defense_datasets=true|false]"
             echo "       [--mimic_generate_defense_datasets=true|false]"
             echo "       [--physionetcinc_generate_defense_datasets=true|false]"
+            echo "       [--ohiot1dm_evaluate_defense=true|false] [--ohiot1dm_defense_type=knn|oneclasssvm|madgan|all]"
+            echo "       [--mimic_evaluate_defense=true|false] [--mimic_defense_type=knn|oneclasssvm|madgan|all]"
+            echo "       [--physionetcinc_evaluate_defense=true|false] [--physionetcinc_defense_type=knn|oneclasssvm|madgan|all]"
             exit 0
             ;;
         *) echo "Unknown option: $arg"; exit 1 ;;
@@ -131,6 +148,12 @@ RUN_PHYS_CLUS_METHOD=$(echo "$RUN_PHYS_CLUS_METHOD" | tr '[:upper:]' '[:lower:]'
 RUN_OHIOT1DM_GEN_DEF=$(echo "$RUN_OHIOT1DM_GEN_DEF" | tr '[:upper:]' '[:lower:]')
 RUN_MIMIC_GEN_DEF=$(echo "$RUN_MIMIC_GEN_DEF" | tr '[:upper:]' '[:lower:]')
 RUN_PHYS_GEN_DEF=$(echo "$RUN_PHYS_GEN_DEF" | tr '[:upper:]' '[:lower:]')
+RUN_OHIOT1DM_EVAL_DEF=$(echo "$RUN_OHIOT1DM_EVAL_DEF" | tr '[:upper:]' '[:lower:]')
+RUN_OHIOT1DM_DEF_TYPE=$(echo "$RUN_OHIOT1DM_DEF_TYPE" | tr '[:upper:]' '[:lower:]')
+RUN_MIMIC_EVAL_DEF=$(echo "$RUN_MIMIC_EVAL_DEF" | tr '[:upper:]' '[:lower:]')
+RUN_MIMIC_DEF_TYPE=$(echo "$RUN_MIMIC_DEF_TYPE" | tr '[:upper:]' '[:lower:]')
+RUN_PHYS_EVAL_DEF=$(echo "$RUN_PHYS_EVAL_DEF" | tr '[:upper:]' '[:lower:]')
+RUN_PHYS_DEF_TYPE=$(echo "$RUN_PHYS_DEF_TYPE" | tr '[:upper:]' '[:lower:]')
 
 RUN_GLOBAL_RISK=$(echo "$RUN_GLOBAL_RISK" | tr '[:upper:]' '[:lower:]')
 RUN_GLOBAL_CLUS=$(echo "$RUN_GLOBAL_CLUS" | tr '[:upper:]' '[:lower:]')
@@ -151,17 +174,74 @@ fi
 # ---------------------------
 # Helper to run scripts inside environments
 # ---------------------------
+run_in_env_path() {
+    local env_path=$1
+    local work_dir=$2
+    local cmd=$3
+
+    echo ">>> Activating environment $env_path and running script in $work_dir ..."
+    source "$SCRIPT_DIR/$env_path/bin/activate"
+    cd "$SCRIPT_DIR/$work_dir"
+    eval "$cmd"
+    cd "$SCRIPT_DIR"
+    deactivate || true
+}
+
 run_in_env() {
     local env_dir=$1
     local target_dir=$2
     local cmd=$3
+    run_in_env_path "$target_dir/$env_dir" "$target_dir" "$cmd"
+}
 
-    echo ">>> Activating environment $env_dir and running script in $target_dir ..."
-    source "$SCRIPT_DIR/$target_dir/$env_dir/bin/activate"
-    cd "$SCRIPT_DIR/$target_dir"
-    eval "$cmd"
-    cd "$SCRIPT_DIR"
-    deactivate || true
+run_defense_eval_scripts() {
+    local env_dir=$1
+    local target_dir=$2
+    local dataset_key=$3
+    local defense_type=$4
+
+    local defense_types=()
+    if [ "$defense_type" = "all" ]; then
+        defense_types=("knn" "oneclasssvm" "madgan")
+    elif [ "$defense_type" = "knn" ] || [ "$defense_type" = "oneclasssvm" ] || [ "$defense_type" = "madgan" ]; then
+        defense_types=("$defense_type")
+    else
+        echo "Error: Invalid defense type '$defense_type' for $dataset_key."
+        echo "Valid values are: knn, oneclasssvm, madgan, all"
+        exit 1
+    fi
+
+    for dtype in "${defense_types[@]}"; do
+        if [ "$dtype" = "madgan" ]; then
+            local madgan_script="defenses/MAD-GAN/evaluate_madgan.py"
+            local madgan_work_dir="$target_dir/defenses/MAD-GAN"
+            local madgan_env_path="$madgan_work_dir/venv_madgan"
+
+            if [ ! -f "$SCRIPT_DIR/$target_dir/$madgan_script" ]; then
+                echo "Error: Defense evaluation script not found: $target_dir/$madgan_script"
+                exit 1
+            fi
+            if [ ! -d "$SCRIPT_DIR/$madgan_env_path" ]; then
+                echo "Error: MAD-GAN environment not found: $madgan_env_path"
+                exit 1
+            fi
+            run_in_env_path "$madgan_env_path" "$madgan_work_dir" "python evaluate_madgan.py"
+        elif [ "$dtype" = "knn" ]; then
+            local knn_script="defenses/evaluate_knn.py"
+            if [ ! -f "$SCRIPT_DIR/$target_dir/$knn_script" ]; then
+                echo "Error: Defense evaluation script not found: $target_dir/$knn_script"
+                exit 1
+            fi
+            run_in_env "$env_dir" "$target_dir" "python $knn_script"
+        elif [ "$dtype" = "oneclasssvm" ]; then
+            local ocsvm_script="defenses/evaluate_oneclasssvm.py"
+            if [ ! -f "$SCRIPT_DIR/$target_dir/$ocsvm_script" ]; then
+                echo "Error: Defense evaluation script not found: $target_dir/$ocsvm_script"
+                exit 1
+            fi
+            run_in_env "$env_dir" "$target_dir" "python $ocsvm_script"
+        fi
+    done
 }
 
 # ---------------------------
@@ -270,6 +350,24 @@ fi
 if [ "$RUN_PHYS_GEN_DEF" = "true" ]; then
     echo "Generating Defense Dataset for PhysioNetCinC..."
     run_in_env "venv_physionetcinc" "PhysioNetCinC" "python generate_defense_dataset.py"
+fi
+
+# ---------------------------
+# Evaluate Defenses
+# ---------------------------
+if [ "$RUN_OHIOT1DM_EVAL_DEF" = "true" ]; then
+    echo "Evaluating defenses for OhioT1DM (${RUN_OHIOT1DM_DEF_TYPE})..."
+    run_defense_eval_scripts "venv_ohiot1dm" "OhioT1DM" "ohiot1dm" "$RUN_OHIOT1DM_DEF_TYPE"
+fi
+
+if [ "$RUN_MIMIC_EVAL_DEF" = "true" ]; then
+    echo "Evaluating defenses for MIMIC (${RUN_MIMIC_DEF_TYPE})..."
+    run_defense_eval_scripts "venv_mimic" "MIMIC" "mimic" "$RUN_MIMIC_DEF_TYPE"
+fi
+
+if [ "$RUN_PHYS_EVAL_DEF" = "true" ]; then
+    echo "Evaluating defenses for PhysioNetCinC (${RUN_PHYS_DEF_TYPE})..."
+    run_defense_eval_scripts "venv_physionetcinc" "PhysioNetCinC" "physionetcinc" "$RUN_PHYS_DEF_TYPE"
 fi
 
 echo "Pipeline completed successfully."

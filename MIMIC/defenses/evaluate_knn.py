@@ -1,0 +1,216 @@
+import os
+from sklearn.metrics import accuracy_score, recall_score, precision_score, f1_score
+import numpy as np
+from pathlib import Path
+# from sklearn.preprocessing import StandardScaler
+# from sklearn.preprocessing import RobustScaler
+import csv
+import pandas as pd
+import shutil
+import argparse
+from pyod.models.knn import KNN
+
+def combine_results(output_directory):
+    # === File paths (edit these) ===
+    file_less = output_directory/"less"/"Results.csv"
+    file_samples = output_directory/"samples"/"Results.csv"
+    file_more = output_directory/"more"/"Results.csv"
+    file_all = output_directory/"all"/"Results.csv"
+
+    output_file = output_directory/"KNN_combined_results.csv"
+
+
+    # === Helper: rename columns to avoid collisions ===
+    def rename_columns(df, prefix):
+        return df.rename(columns={
+            "Accuracy": f"{prefix}_Accuracy",
+            "Precision": f"{prefix}_Precision",
+            "Recall": f"{prefix}_Recall",
+            "F1": f"{prefix}_F1"
+        })
+
+
+    # === Load CSVs ===
+    df_less = pd.read_csv(file_less)
+    df_samples = pd.read_csv(file_samples)
+    df_more = pd.read_csv(file_more)
+    df_all = pd.read_csv(file_all)
+
+    # === Rename columns ===
+    df_less = rename_columns(df_less, "Less")
+    df_samples = rename_columns(df_samples, "Samples")
+    df_more = rename_columns(df_more, "More")
+    df_all = rename_columns(df_all, "All")
+
+    # === Merge on CV ===
+    merged = df_less.merge(df_samples, on="CV") \
+                    .merge(df_more, on="CV") \
+                    .merge(df_all, on="CV")
+
+    # === Ensure correct column order ===
+    ordered_cols = [
+        "CV",
+        "Less_Accuracy", "Less_Precision", "Less_Recall", "Less_F1",
+        "Samples_Accuracy", "Samples_Precision", "Samples_Recall", "Samples_F1",
+        "More_Accuracy", "More_Precision", "More_Recall", "More_F1",
+        "All_Accuracy", "All_Precision", "All_Recall", "All_F1",
+    ]
+
+    merged = merged[ordered_cols]
+
+
+    # === Create custom headers ===
+    header1 = [
+        "",
+        "Less Vulnerable","","","",
+        "Samples Training","","","",
+        "More Vulnerable","","","",
+        "All Patients","","",""
+    ]
+
+    header2 = [
+        "CV",
+        "Accuracy","Precision","Recall","F1",
+        "Accuracy","Precision","Recall","F1",
+        "Accuracy","Precision","Recall","F1",
+        "Accuracy","Precision","Recall","F1"
+    ]
+
+
+    # === Write output ===
+    with open(output_file, "w") as f:
+        f.write(",".join(header1) + "\n")
+        f.write(",".join(header2) + "\n")
+        merged.to_csv(f, index=False, header=False)
+
+
+
+def evaluate_knn(output_directory):
+    os.makedirs(output_directory, exist_ok=True)
+    data_dir = Path(__file__).resolve().parents[1] / "output" / "defense_dataset"
+
+    neigh = KNN(n_neighbors=7, contamination=0.5)
+
+    # scaler = StandardScaler()
+    # scaler = RobustScaler()
+    ######################################################################################################################################
+    # less
+    os.makedirs(output_directory / "less", exist_ok=True)
+    results = open(output_directory / "less" / "Results.csv", 'w')
+    results.write('CV,Accuracy,Precision,Recall,F1\n')
+
+    train = np.load(data_dir / "mimic_train_less_0.npy")
+    train_x = train[:, :-1]
+    train_y = train[:, -1]
+
+    neigh.fit(train_x)
+
+    for cv in range(5):
+        print('Less\tCV: ' + str(cv))
+        test = np.load(data_dir / f"mimic_test_all_{cv}.npy")
+        test_x = test[:, :-1]
+        test_y = test[:, -1]
+
+        lst = neigh.predict(test_x)
+        
+        results.write(str(cv) + ',' + str(accuracy_score(test_y, lst) * 100) + ',' + str(precision_score(test_y, lst)) + ',' + str(
+            recall_score(test_y, lst)) + ',' + str(f1_score(test_y, lst)) + '\n')
+    results.close()
+    ######################################################################################################################################
+    # more
+    os.makedirs(output_directory/"more", exist_ok=True)
+    results = open(output_directory/"more"/"Results.csv", 'w')
+    results.write('CV,Accuracy,Precision,Recall,F1\n')
+
+    train = np.load(data_dir/"mimic_train_more_0.npy")
+    train_x = train[:, :-1]
+    train_y = train[:, -1]
+
+    neigh.fit(train_x)
+    # clf.fit(scaler.fit_transform(train_x))
+
+    for cv in range(5):
+        print('More\tCV: ' + str(cv))
+        test = np.load(data_dir / f"mimic_test_all_{cv}.npy")
+        test_x = test[:, :-1]
+        test_y = test[:, -1]
+
+        lst = neigh.predict(test_x)
+        
+        results.write(str(cv) + ',' + str(accuracy_score(test_y, lst) * 100) + ',' + str(precision_score(test_y, lst)) + ',' + str(
+            recall_score(test_y, lst)) + ',' + str(f1_score(test_y, lst)) + '\n')
+    results.close()
+    ######################################################################################################################################
+    #All patients
+    os.makedirs(output_directory/"all", exist_ok=True)
+    results = open(output_directory/"all"/"Results.csv", 'w')
+    results.write('CV,Accuracy,Precision,Recall,F1\n')
+
+    train = np.load(data_dir/"mimic_train_all_0.npy")
+    train_x = train[:, :-1]
+    train_y = train[:, -1]
+
+    neigh.fit(train_x)
+    # clf.fit(scaler.fit_transform(train_x))
+
+    for cv in range(5):
+        print('All\tCV: ' + str(cv))
+        test = np.load(data_dir / f"mimic_test_all_{cv}.npy")
+        test_x = test[:, :-1]
+        test_y = test[:, -1]
+
+        lst = neigh.predict(test_x)
+        
+        results.write(str(cv) + ',' + str(accuracy_score(test_y, lst) * 100) + ',' + str(precision_score(test_y, lst)) + ',' + str(
+            recall_score(test_y, lst)) + ',' + str(f1_score(test_y, lst)) + '\n')
+    results.close()
+    ######################################################################################################################################
+    # Samples
+    os.makedirs(output_directory/"samples", exist_ok=True)
+    results = open(output_directory/"samples"/"Results.csv", 'w')
+    results.write('CV,Accuracy,Precision,Recall,F1\n')
+
+    for run in range(5):
+        train = np.load(data_dir/f"mimic_train_samples_{run}.npy")
+        train_x = train[:, :-1]
+        train_y = train[:, -1]
+
+        neigh.fit(train_x)
+        Accuracy = []
+        Precision = []
+        Recall = []
+        F1 = []
+        for cv in range(5):
+            print('Samples '+str(run)+'\tCV: ' + str(cv))
+            test = np.load(data_dir / f"mimic_test_all_{cv}.npy")
+            test_x = test[:, :-1]
+            test_y = test[:, -1]
+
+            lst = neigh.predict(test_x)
+            
+            Accuracy.append(accuracy_score(test_y, lst) * 100)
+            Precision.append(precision_score(test_y, lst) * 100)
+            Recall.append(recall_score(test_y, lst) * 100)
+            F1.append(f1_score(test_y, lst) * 100)
+            
+            # results.write(str(cv) + ',' + str(accuracy_score(test_y, lst) * 100) + ',' + str(precision_score(test_y, lst)) + ',' + str(recall_score(test_y, lst)) + ',' + str(f1_score(test_y, lst)) + '\n')
+        results.write(f'{run},' + str(np.average(np.array(Accuracy))) + ',' + str(np.average(np.array(Precision))) + ',' + str(np.average(np.array(Recall))) + ',' + str(np.average(np.array(F1))) + '\n')
+    results.close()
+    ######################################################################################################################################
+
+    combine_results(output_directory)
+
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser(
+        description="Run MIMIC script: python evaluate_knn.py <output_directory>",
+        epilog="Example: python evaluate_knn.py output"
+    )
+    parser.add_argument("out_dir", nargs="?", default="output/defense_output/KNN", help="Output directory")
+
+    args = parser.parse_args()
+
+    dataset_root = Path(__file__).resolve().parents[1]
+
+    output_directory = dataset_root / args.out_dir
+
+    evaluate_knn(output_directory)

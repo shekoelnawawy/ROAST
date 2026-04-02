@@ -5,6 +5,7 @@ torchvision
 pandas
 pyyaml
 argparse
-dtaidistance==2.3.10
+dtaidistance
 joblib
 matplotlib
+pyod

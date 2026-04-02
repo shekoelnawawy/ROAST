@@ -13,6 +13,9 @@ source "$VENV_DIR/bin/activate"
 
 PIP="$VENV_DIR/bin/pip"
 
+echo ">>> Upgrading pip toolchain"
+$PIP install --upgrade pip setuptools wheel
+
 echo ">>> Installing requirements"
 $PIP install -r "$SCRIPT_DIR/requirements.txt"
 

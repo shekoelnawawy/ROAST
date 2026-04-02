@@ -15,5 +15,6 @@ argparse
 jupyter
 argparse
 markupsafe==2.0.1
-dtaidistance==2.3.10
+dtaidistance
 joblib
+pyod

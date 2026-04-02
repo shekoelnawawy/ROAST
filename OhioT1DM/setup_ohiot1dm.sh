@@ -13,6 +13,9 @@ source "$VENV_DIR/bin/activate"
 
 PIP="$VENV_DIR/bin/pip"
 
+echo ">>> Upgrading pip toolchain"
+$PIP install --upgrade pip setuptools wheel
+
 echo ">>> Installing requirements"
 $PIP install -r "$SCRIPT_DIR/requirements.txt"
 
@@ -27,7 +30,7 @@ cp -r ~/Downloads/OhioT1DM/raw_data "$BASE_DIR/data/raw" || true    # Important:
 # cp -r ~/Downloads/OhioT1DM/models/PRETRAINS "$BASE_DIR/" || true
 echo ">>> Downloading pretrained models"
 $PIP install gdown
-gdown 1VXO2wT7M0htjVGbd6hk2935q52AteI7A -O "$BASE_DIR/PRETRAINS.zip" || true
+c"$BASE_DIR/PRETRAINS.zip" || true
 unzip -o "$BASE_DIR/PRETRAINS.zip" -d "$BASE_DIR/" || true
 
 echo ">>> Installing URET"

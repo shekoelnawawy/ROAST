@@ -7,6 +7,8 @@ ohiot1dm_risk_profile: false
 ohiot1dm_cluster: false
 ohiot1dm_cluster_method: "hierarchical"  # Options: hierarchical, kmeans
 ohiot1dm_generate_defense_datasets: false
+ohiot1dm_evaluate_defense: false
+ohiot1dm_defense_type: "madgan"  # Options: knn, oneclasssvm, madgan, all
 
 # MIMIC Pipeline
 mimic_preprocess: false
@@ -17,6 +19,8 @@ mimic_risk_profile: false
 mimic_cluster: false
 mimic_cluster_method: "hierarchical"  # Options: hierarchical, kmeans
 mimic_generate_defense_datasets: false
+mimic_evaluate_defense: false
+mimic_defense_type: "madgan"  # Options: knn, oneclasssvm, madgan, all
 
 # PhysioNetCinC Pipeline
 physionetcinc_model: false
@@ -26,3 +30,5 @@ physionetcinc_risk_profile: false
 physionetcinc_cluster: false
 physionetcinc_cluster_method: "hierarchical"  # Options: hierarchical, kmeans
 physionetcinc_generate_defense_datasets: false
+physionetcinc_evaluate_defense: false
+physionetcinc_defense_type: "madgan"  # Options: knn, oneclasssvm, madgan, all
