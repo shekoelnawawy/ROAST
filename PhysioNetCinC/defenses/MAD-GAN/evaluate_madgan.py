@@ -4,7 +4,7 @@ from pathlib import Path
 import argparse
 import pandas as pd
 
-def combine_results(output_directory, defense_type):
+def combine_results(output_directory):
     # === File paths (edit these) ===
     file_less = output_directory/"less"/"Results.csv"
     file_samples = output_directory/"samples"/"Results.csv"
@@ -224,6 +224,8 @@ def evaluate_madgan(output_directory):
         print('CV: ' + str(cv))
         os.system('python AD.py --settings_file sepsis_test > '+str(output_directory)+"/all/test_all_" + str(cv) + '.txt')
 
+    out = open(str(output_directory)+"/all/Results.csv", "w")
+    out.write('CV,Accuracy,Precision,Recall,F1\n')
 
     Accuracy = []
     Precision = []

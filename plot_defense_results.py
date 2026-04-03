@@ -119,7 +119,7 @@ def plot_box_with_stats(ax, series, show_legend=False):
         ax.legend(handles=legend_elements, loc="upper right", bbox_to_anchor=(1.02, 1.3), fontsize=10)
 
 
-def print_ttests(defense_name, metrics):
+def print_ttests(defense_name, metrics, output_file):
     for measure in ["precision", "recall"]:
         less = metrics["less_vulnerable"][measure]
         all_patients = metrics["all_patients"][measure]
@@ -129,12 +129,20 @@ def print_ttests(defense_name, metrics):
 
         t_stat, p_value = ttest_rel(less, all_patients)
         label = measure.capitalize()
-        print(f"{defense_name} t-test:")
-        print(f"{label} T-statistic: {t_stat:.3f}, P-value: {p_value:.11f}")
+        line1 = f"{defense_name} t-test:"
+        line2 = f"{label} T-statistic: {t_stat:.3f}, P-value: {p_value:.11f}"
         if p_value < 0.05:
-            print("The improvement is statistically significant (p < 0.05).")
+            line3 = "The improvement is statistically significant (p < 0.05)."
         else:
-            print("The improvement is not statistically significant (p >= 0.05).")
+            line3 = "The improvement is not statistically significant (p >= 0.05)."
+
+        print(line1)
+        print(line2)
+        print(line3)
+        output_file.write(line1 + "\n")
+        output_file.write(line2 + "\n")
+        output_file.write(line3 + "\n")
+        output_file.write("\n")
 
 
 def plot_individual_defense(dataset, out_dir, defense_key, display_name, metrics, font_size=16):
@@ -214,6 +222,7 @@ def plot_combined_by_defense(dataset, out_dir, available_defenses, font_size=16)
 def plot_defense_results(dataset, output_directory):
     out_dir = output_directory / "plots"
     os.makedirs(out_dir, exist_ok=True)
+    t_test_path = out_dir / "t_test_output.txt"
 
     available_defenses = []
     for defense_cfg in DEFENSE_CONFIGS:
@@ -240,9 +249,10 @@ def plot_defense_results(dataset, output_directory):
 
     print(f"Using defenses: {', '.join(d['key'] for d in available_defenses)}")
 
-    for defense in available_defenses:
-        print_ttests(defense["key"], defense["metrics"])
-        plot_individual_defense(dataset, out_dir, defense["key"], defense["display"], defense["metrics"])
+    with open(t_test_path, "w") as t_test_file:
+        for defense in available_defenses:
+            print_ttests(defense["key"], defense["metrics"], t_test_file)
+            plot_individual_defense(dataset, out_dir, defense["key"], defense["display"], defense["metrics"])
 
     plot_combined_by_measure(dataset, out_dir, available_defenses)
     plot_combined_by_defense(dataset, out_dir, available_defenses)

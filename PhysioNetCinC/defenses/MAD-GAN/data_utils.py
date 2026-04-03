@@ -22,6 +22,23 @@ from sklearn.preprocessing import MinMaxScaler
 from sklearn import preprocessing
 
 
+def _safe_pca_project(X, requested_components):
+    from sklearn.decomposition import PCA
+
+    max_components = min(X.shape[0], X.shape[1])
+    n_components = max(1, min(requested_components, max_components))
+
+    pca = PCA(n_components, svd_solver='full')
+    pca.fit(X)
+    projected = np.matmul(X, pca.components_.transpose(1, 0))
+
+    if n_components < requested_components:
+        pad = np.zeros((projected.shape[0], requested_components - n_components), dtype=projected.dtype)
+        projected = np.concatenate((projected, pad), axis=1)
+
+    return projected, pca
+
+
 # --- deal with the SWaT data --- #
 def swat(seq_length, seq_step, num_signals, randomize=False):
     """ Load and serialise """
@@ -604,18 +621,13 @@ def sepsis_patient_wise(year, patient, seq_length, seq_step, num_signals):
     #############################
     ############################
     # -- apply PCA dimension reduction for multi-variate GAN-AD -- #
-    from sklearn.decomposition import PCA
     X_n = samples
     ####################################
     ###################################
     # -- the best PC dimension is chosen pc=6 -- #
     n_components = num_signals
-    pca = PCA(n_components, svd_solver='full')
-    pca.fit(X_n)
+    T_n, pca = _safe_pca_project(X_n, n_components)
     ex_var = pca.explained_variance_ratio_
-    pc = pca.components_
-    # projected values on the principal component
-    T_n = np.matmul(X_n, pc.transpose(1, 0))
     samples = T_n
     # # only for one-dimensional
     # samples = T_n.reshape([samples.shape[0], ])
@@ -659,18 +671,13 @@ def sepsis_test_patient_wise(year, patient, seq_length, seq_step, num_signals):
     #############################
     ############################
     # -- apply PCA dimension reduction for multi-variate GAN-AD -- #
-    from sklearn.decomposition import PCA
     import DR_discriminator as dr
     X_a = samples
     ####################################
     ###################################
     # -- the best PC dimension is chosen pc=6 -- #
     n_components = num_signals
-    pca_a = PCA(n_components, svd_solver='full')
-    pca_a.fit(X_a)
-    pc_a = pca_a.components_
-    # projected values on the principal component
-    T_a = np.matmul(X_a, pc_a.transpose(1, 0))
+    T_a, pca_a = _safe_pca_project(X_a, n_components)
     samples = T_a
     # # only for one-dimensional
     # samples = T_a.reshape([samples.shape[0], ])

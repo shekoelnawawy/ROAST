@@ -183,8 +183,11 @@ def generate_defense_dataset(cluster_dir, out_dir):
     np.save(out_dir / 'sepsis_train_less_0.npy', all_mixed_data[less_indices])
     np.save(out_dir / 'sepsis_train_more_0.npy', all_mixed_data[more_indices])
 
-    # all uses benign data only
-    np.save(out_dir / 'sepsis_train_all_0.npy', AllPatientsDataBenign.drop(columns=['PatientID']).to_numpy().astype(float))
+    # all uses benign data only, with a zero adversarial label column for shape consistency
+    benign_all = AllPatientsDataBenign.drop(columns=['PatientID']).to_numpy().astype(float)
+    benign_labels = np.zeros((benign_all.shape[0], 1), dtype=float)
+    benign_all_with_label = np.hstack([benign_all, benign_labels])
+    np.save(out_dir / 'sepsis_train_all_0.npy', benign_all_with_label)
 
     for run in range(5):
         split = train_test_split(AllPatientIDs, train_size=len(LessVulnerablePatientIDs))
@@ -201,8 +204,10 @@ def generate_defense_dataset(cluster_dir, out_dir):
     cv=0
     kf = KFold(n_splits=5)
     for train_indices, test_indices in kf.split(AllPatientIDs):
-        test_mask = AllPatientsDataAdversarial['PatientID'].isin([AllPatientIDs[i] for i in test_indices])
-        np.save(out_dir / f'sepsis_test_all_{cv}.npy', AllPatientsDataAdversarial[test_mask].drop(columns=['PatientID']).to_numpy().astype(float))
+        test_patient_ids = [AllPatientIDs[i] for i in test_indices]
+        test_mask = AllPatientsDataBenign['PatientID'].isin(test_patient_ids)
+        test_indices_rows = np.where(test_mask.values)[0]
+        np.save(out_dir / f'sepsis_test_all_{cv}.npy', all_mixed_data[test_indices_rows])
         cv+=1
 
 

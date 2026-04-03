@@ -5,7 +5,7 @@ import argparse
 import pandas as pd
 
 
-def combine_results(output_directory, defense_type):
+def combine_results(output_directory):
     # === File paths (edit these) ===
     file_less = output_directory/"less"/"Results.csv"
     file_samples = output_directory/"samples"/"Results.csv"

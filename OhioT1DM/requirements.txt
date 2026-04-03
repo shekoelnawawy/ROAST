@@ -4,6 +4,6 @@ pandas
 PyYAML
 argparse
 joblib
-dtaidistance
+dtaidistance==2.3.13
 tslearn
 pyod
