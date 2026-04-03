@@ -62,10 +62,13 @@ RUN_PHYS_GEN_DEF=$(yq e '.physionetcinc_generate_defense_datasets' "$CONFIG_FILE
 # Evaluate Defense flags
 RUN_OHIOT1DM_EVAL_DEF=$(yq e '.ohiot1dm_evaluate_defense' "$CONFIG_FILE")
 RUN_OHIOT1DM_DEF_TYPE=$(yq e '.ohiot1dm_defense_type' "$CONFIG_FILE")
+RUN_OHIOT1DM_PLOT_DEF=$(yq e '.ohiot1dm_plot_defense_results' "$CONFIG_FILE")
 RUN_MIMIC_EVAL_DEF=$(yq e '.mimic_evaluate_defense' "$CONFIG_FILE")
 RUN_MIMIC_DEF_TYPE=$(yq e '.mimic_defense_type' "$CONFIG_FILE")
+RUN_MIMIC_PLOT_DEF=$(yq e '.mimic_plot_defense_results' "$CONFIG_FILE")
 RUN_PHYS_EVAL_DEF=$(yq e '.physionetcinc_evaluate_defense' "$CONFIG_FILE")
 RUN_PHYS_DEF_TYPE=$(yq e '.physionetcinc_defense_type' "$CONFIG_FILE")
+RUN_PHYS_PLOT_DEF=$(yq e '.physionetcinc_plot_defense_results' "$CONFIG_FILE")
 
 RUN_GLOBAL_RISK="false"
 RUN_GLOBAL_CLUS="false"
@@ -97,10 +100,13 @@ for arg in "$@"; do
         --physionetcinc_generate_defense_datasets=*) RUN_PHYS_GEN_DEF="${arg#*=}" ;;
         --ohiot1dm_evaluate_defense=*) RUN_OHIOT1DM_EVAL_DEF="${arg#*=}" ;;
         --ohiot1dm_defense_type=*) RUN_OHIOT1DM_DEF_TYPE="${arg#*=}" ;;
+        --ohiot1dm_plot_defense_results=*) RUN_OHIOT1DM_PLOT_DEF="${arg#*=}" ;;
         --mimic_evaluate_defense=*) RUN_MIMIC_EVAL_DEF="${arg#*=}" ;;
         --mimic_defense_type=*) RUN_MIMIC_DEF_TYPE="${arg#*=}" ;;
+        --mimic_plot_defense_results=*) RUN_MIMIC_PLOT_DEF="${arg#*=}" ;;
         --physionetcinc_evaluate_defense=*) RUN_PHYS_EVAL_DEF="${arg#*=}" ;;
         --physionetcinc_defense_type=*) RUN_PHYS_DEF_TYPE="${arg#*=}" ;;
+        --physionetcinc_plot_defense_results=*) RUN_PHYS_PLOT_DEF="${arg#*=}" ;;
         --risk_profile=*)             RUN_GLOBAL_RISK="${arg#*=}" ;;
         --cluster=*)                  RUN_GLOBAL_CLUS="${arg#*=}" ;;
         -h|--help)
@@ -119,6 +125,9 @@ for arg in "$@"; do
             echo "       [--ohiot1dm_evaluate_defense=true|false] [--ohiot1dm_defense_type=knn|oneclasssvm|madgan|all]"
             echo "       [--mimic_evaluate_defense=true|false] [--mimic_defense_type=knn|oneclasssvm|madgan|all]"
             echo "       [--physionetcinc_evaluate_defense=true|false] [--physionetcinc_defense_type=knn|oneclasssvm|madgan|all]"
+            echo "       [--ohiot1dm_plot_defense_results=true|false]"
+            echo "       [--mimic_plot_defense_results=true|false]"
+            echo "       [--physionetcinc_plot_defense_results=true|false]"
             exit 0
             ;;
         *) echo "Unknown option: $arg"; exit 1 ;;
@@ -150,10 +159,13 @@ RUN_MIMIC_GEN_DEF=$(echo "$RUN_MIMIC_GEN_DEF" | tr '[:upper:]' '[:lower:]')
 RUN_PHYS_GEN_DEF=$(echo "$RUN_PHYS_GEN_DEF" | tr '[:upper:]' '[:lower:]')
 RUN_OHIOT1DM_EVAL_DEF=$(echo "$RUN_OHIOT1DM_EVAL_DEF" | tr '[:upper:]' '[:lower:]')
 RUN_OHIOT1DM_DEF_TYPE=$(echo "$RUN_OHIOT1DM_DEF_TYPE" | tr '[:upper:]' '[:lower:]')
+RUN_OHIOT1DM_PLOT_DEF=$(echo "$RUN_OHIOT1DM_PLOT_DEF" | tr '[:upper:]' '[:lower:]')
 RUN_MIMIC_EVAL_DEF=$(echo "$RUN_MIMIC_EVAL_DEF" | tr '[:upper:]' '[:lower:]')
 RUN_MIMIC_DEF_TYPE=$(echo "$RUN_MIMIC_DEF_TYPE" | tr '[:upper:]' '[:lower:]')
+RUN_MIMIC_PLOT_DEF=$(echo "$RUN_MIMIC_PLOT_DEF" | tr '[:upper:]' '[:lower:]')
 RUN_PHYS_EVAL_DEF=$(echo "$RUN_PHYS_EVAL_DEF" | tr '[:upper:]' '[:lower:]')
 RUN_PHYS_DEF_TYPE=$(echo "$RUN_PHYS_DEF_TYPE" | tr '[:upper:]' '[:lower:]')
+RUN_PHYS_PLOT_DEF=$(echo "$RUN_PHYS_PLOT_DEF" | tr '[:upper:]' '[:lower:]')
 
 RUN_GLOBAL_RISK=$(echo "$RUN_GLOBAL_RISK" | tr '[:upper:]' '[:lower:]')
 RUN_GLOBAL_CLUS=$(echo "$RUN_GLOBAL_CLUS" | tr '[:upper:]' '[:lower:]')
@@ -368,6 +380,24 @@ fi
 if [ "$RUN_PHYS_EVAL_DEF" = "true" ]; then
     echo "Evaluating defenses for PhysioNetCinC (${RUN_PHYS_DEF_TYPE})..."
     run_defense_eval_scripts "venv_physionetcinc" "PhysioNetCinC" "physionetcinc" "$RUN_PHYS_DEF_TYPE"
+fi
+
+# ---------------------------
+# Plot Defense Results
+# ---------------------------
+if [ "$RUN_OHIOT1DM_PLOT_DEF" = "true" ]; then
+    echo "Plotting defense results for OhioT1DM..."
+    run_in_env_path "OhioT1DM/venv_ohiot1dm" "." "python plot_defense_results.py OhioT1DM OhioT1DM/output/defense_output"
+fi
+
+if [ "$RUN_MIMIC_PLOT_DEF" = "true" ]; then
+    echo "Plotting defense results for MIMIC..."
+    run_in_env_path "MIMIC/venv_mimic" "." "python plot_defense_results.py MIMIC MIMIC/output/defense_output"
+fi
+
+if [ "$RUN_PHYS_PLOT_DEF" = "true" ]; then
+    echo "Plotting defense results for PhysioNetCinC..."
+    run_in_env_path "PhysioNetCinC/venv_physionetcinc" "." "python plot_defense_results.py PhysioNetCinC PhysioNetCinC/output/defense_output"
 fi
 
 echo "Pipeline completed successfully."

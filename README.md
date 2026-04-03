@@ -48,25 +48,46 @@ bash setup.sh
 
 ## Configuration
 
-Control the entire execution pipeline through the central `pipeline_config.yml` configuration point. Here, you can toggle preprocessing and model training independently:
+Control the entire execution pipeline through the central `pipeline_config.yml` configuration point. Here, you can toggle pipeline steps independently:
 
 ```yaml
 # OhioT1DM Pipeline
 ohiot1dm_preprocess: false
 ohiot1dm_model: false
-ohiot1dm_dataset: 2020  # Options: 2018, 2020
-ohiot1dm_attack_type: "URET"    # Options: URET, FGSM
+ohiot1dm_dataset: "all"  # Options: 2018, 2020, all
+ohiot1dm_attack_type: "URET"  # Options: URET, FGSM
+ohiot1dm_risk_profile: false
+ohiot1dm_cluster: false
+ohiot1dm_cluster_method: "hierarchical"  # Options: hierarchical, kmeans
+ohiot1dm_generate_defense_datasets: false
+ohiot1dm_evaluate_defense: false
+ohiot1dm_defense_type: "all"  # Options: knn, oneclasssvm, madgan, all
+ohiot1dm_plot_defense_results: false
 
 # MIMIC Pipeline
 mimic_preprocess: false
 mimic_model_train: false
 mimic_model_test: false
 mimic_attack_type: "URET"  # Options: URET, FGSM
+mimic_risk_profile: false
+mimic_cluster: false
+mimic_cluster_method: "hierarchical"  # Options: hierarchical, kmeans
+mimic_generate_defense_datasets: false
+mimic_evaluate_defense: false
+mimic_defense_type: "all"  # Options: knn, oneclasssvm, madgan, all
+mimic_plot_defense_results: false
 
 # PhysioNetCinC Pipeline
 physionetcinc_model: false
-physionetcinc_dataset: "A"  # Options: A, B
+physionetcinc_dataset: "all"  # Options: A, B, all
 physionetcinc_attack_type: "URET"  # Options: URET, FGSM
+physionetcinc_risk_profile: false
+physionetcinc_cluster: false
+physionetcinc_cluster_method: "hierarchical"  # Options: hierarchical, kmeans
+physionetcinc_generate_defense_datasets: false
+physionetcinc_evaluate_defense: false
+physionetcinc_defense_type: "all"  # Options: knn, oneclasssvm, madgan, all
+physionetcinc_plot_defense_results: false
 ```
 
 ## Running the Pipeline
