@@ -40,11 +40,14 @@ def risk_profile(output_directory):
     # pre-processing
     adversarial_data = adversarial_data.reshape(-1, 72 * 432)
     adversarial_data = preprocessing.normalize(adversarial_data)
+    benign_data = benign_data.reshape(-1, 72 * 432)
+    benign_data = preprocessing.normalize(benign_data)
     adversarial_output = adversarial_output >= 0.5
 
     # logistic regression for feature importance
     # define dataset
-    X = adversarial_data
+    # X = adversarial_data
+    X = benign_data
     y = adversarial_output
     # define the model
     model = LogisticRegression()
@@ -53,7 +56,8 @@ def risk_profile(output_directory):
     # get importance
     importance = model.coef_[0]
 
-    timeseries = importance*adversarial_data
+    # timeseries = importance*adversarial_data
+    timeseries = importance*pow(adversarial_data-benign_data, 2)
     timeseries = timeseries.reshape(-1, 72, 432)
 
     risk_profiles = []

@@ -35,6 +35,7 @@ def risk_profile(output_directory):
 
     for training_set in training_sets:
         benign_data_path = output_directory/training_set/"Data"/"Benign"
+        adversarial_data_path = output_directory/training_set/"Data"/"Adversarial"
         adversarial_predictions_path = output_directory/training_set/"Predictions"/"Adversarial"
         for f in tqdm(os.listdir(benign_data_path)):
             if os.path.isfile(benign_data_path/f) and not f.lower().startswith('.') and f.lower().endswith('pkl'):
@@ -45,6 +46,15 @@ def risk_profile(output_directory):
                 benign_data_df = pd.concat([benign_data_df, per_patient_df], axis=0, ignore_index=True)
             else:
                 raise Exception('Benign data file does not exist!')
+            
+            if os.path.isfile(adversarial_data_path/f) and not f.lower().startswith('.') and f.lower().endswith('pkl'):
+                adversarial_data = joblib.load(adversarial_data_path/f)
+                per_patient_df = pd.DataFrame(adversarial_data)
+                per_patient_df.columns = features
+                per_patient_df.insert(loc=0, column='PatientID', value=f[:-4])
+                adversarial_data_df = pd.concat([adversarial_data_df, per_patient_df], axis=0, ignore_index=True)
+            else:
+                raise Exception('Adversarial data file does not exist!')
 
             predictions_f = f[:-4] + '.psv'
             if os.path.isfile(adversarial_predictions_path/predictions_f) and not predictions_f.lower().startswith('.') and predictions_f.lower().endswith('psv'):
@@ -62,6 +72,12 @@ def risk_profile(output_directory):
     benign_data_df = benign_data_df.fillna(0)
     benign_data = np.array(benign_data_df.loc[:, selected_features])
     benign_data = preprocessing.normalize(benign_data)
+
+    adversarial_data_df = adversarial_data_df.ffill()
+    adversarial_data_df = adversarial_data_df.fillna(0)
+    adversarial_data = np.array(adversarial_data_df.loc[:, selected_features])
+    adversarial_data = preprocessing.normalize(adversarial_data)
+
     adversarial_output = np.array(adversarial_predictions_df)
 
     # logistic regression for feature importance
@@ -75,7 +91,8 @@ def risk_profile(output_directory):
     # get importance
     importance = model.coef_[0]
 
-    timeseries = importance * benign_data
+    # timeseries = importance * benign_data
+    timeseries = importance * pow(adversarial_data - benign_data, 2)
 
     risk_profiles = []
     risk_scores = []
