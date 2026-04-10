@@ -24,15 +24,16 @@ MEASURE_KEY = {
 }
 
 COHORT_ORDER = [
-    ("less_vulnerable", "Less Vulnerable"),
-    ("samples_training", "Random Samples"),
-    ("more_vulnerable", "More Vulnerable"),
-    ("all_patients", "All Patients (Benign)"),
+    ("less_vulnerable", "Less Vulnerable (OE)"),
+    ("samples_training", "Random Samples (OE)"),
+    ("more_vulnerable", "More Vulnerable (OE)"),
+    ("all_patients_OE", "All Patients (OE)"),
+    ("all_patients_benign", "All Patients (Benign)"),
 ]
 
 
 def apply_cohort_axis_labels(ax):
-    ax.set_yticks([1, 2, 3, 4])
+    ax.set_yticks([1, 2, 3, 4, 5])
     ax.set_yticklabels([label for _, label in COHORT_ORDER])
     # Keep the first cohort at the top.
     ax.invert_yaxis()
@@ -63,7 +64,8 @@ def parse_results_csv(csv_path):
         "less_vulnerable": {"accuracy": [], "precision": [], "recall": [], "f1": []},
         "samples_training": {"accuracy": [], "precision": [], "recall": [], "f1": []},
         "more_vulnerable": {"accuracy": [], "precision": [], "recall": [], "f1": []},
-        "all_patients": {"accuracy": [], "precision": [], "recall": [], "f1": []},
+        "all_patients_benign": {"accuracy": [], "precision": [], "recall": [], "f1": []},
+        "all_patients_OE": {"accuracy": [], "precision": [], "recall": [], "f1": []},
     }
 
     with open(csv_path, "r", newline="") as csvfile:
@@ -90,10 +92,15 @@ def parse_results_csv(csv_path):
             metrics["more_vulnerable"]["recall"].append(float(row[11]))
             metrics["more_vulnerable"]["f1"].append(float(row[12]))
 
-            metrics["all_patients"]["accuracy"].append(float(row[13]))
-            metrics["all_patients"]["precision"].append(float(row[14]))
-            metrics["all_patients"]["recall"].append(float(row[15]))
-            metrics["all_patients"]["f1"].append(float(row[16]))
+            metrics["all_patients_benign"]["accuracy"].append(float(row[13]))
+            metrics["all_patients_benign"]["precision"].append(float(row[14]))
+            metrics["all_patients_benign"]["recall"].append(float(row[15]))
+            metrics["all_patients_benign"]["f1"].append(float(row[16]))
+            
+            metrics["all_patients_OE"]["accuracy"].append(float(row[17]))
+            metrics["all_patients_OE"]["precision"].append(float(row[18]))
+            metrics["all_patients_OE"]["recall"].append(float(row[19]))
+            metrics["all_patients_OE"]["f1"].append(float(row[20]))
 
     return metrics
 
@@ -122,7 +129,7 @@ def plot_box_with_stats(ax, series, show_legend=False):
 def print_ttests(defense_name, metrics, output_file):
     for measure in ["precision", "recall"]:
         less = metrics["less_vulnerable"][measure]
-        all_patients = metrics["all_patients"][measure]
+        all_patients = metrics["all_patients_benign"][measure]
 
         if len(less) != len(all_patients) or len(less) < 2:
             continue
@@ -231,7 +238,7 @@ def plot_defense_results(dataset, output_directory):
             continue
 
         metrics = parse_results_csv(csv_path)
-        if not metrics["all_patients"]["accuracy"]:
+        if not metrics["all_patients_benign"]["accuracy"]:
             continue
 
         available_defenses.append(

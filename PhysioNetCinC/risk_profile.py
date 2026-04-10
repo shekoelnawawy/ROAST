@@ -31,6 +31,7 @@ def risk_profile(output_directory):
         features = np.array(header.split('|')[:-1])
 
     benign_data_df = pd.DataFrame()
+    adversarial_data_df = pd.DataFrame()
     adversarial_predictions_df = pd.DataFrame()
 
     for training_set in training_sets:

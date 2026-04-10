@@ -183,11 +183,15 @@ def generate_defense_dataset(cluster_dir, out_dir):
     np.save(out_dir / 'sepsis_train_less_0.npy', all_mixed_data[less_indices])
     np.save(out_dir / 'sepsis_train_more_0.npy', all_mixed_data[more_indices])
 
-    # all uses benign data only, with a zero adversarial label column for shape consistency
+    # all uses mixed data (benign and adversarial)
+    all_indices = list(range(len(AllPatientsDataBenign)))
+    np.save(out_dir / 'sepsis_train_all_0.npy', all_mixed_data[all_indices])
+    
+    # also save benign-only version for reference
     benign_all = AllPatientsDataBenign.drop(columns=['PatientID']).to_numpy().astype(float)
     benign_labels = np.zeros((benign_all.shape[0], 1), dtype=float)
     benign_all_with_label = np.hstack([benign_all, benign_labels])
-    np.save(out_dir / 'sepsis_train_all_0.npy', benign_all_with_label)
+    np.save(out_dir / 'sepsis_train_all_benign_0.npy', benign_all_with_label)
 
     for run in range(5):
         split = train_test_split(AllPatientIDs, train_size=len(LessVulnerablePatientIDs))

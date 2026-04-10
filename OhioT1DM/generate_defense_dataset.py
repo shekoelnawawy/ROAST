@@ -106,9 +106,10 @@ def generate_defense_dataset(cluster_dir, out_dir):
     ########################################################################################################################
     # less (mixed benign and adversarial)
     # more (mixed benign and adversarial)
-    # all (benign only)
+    # all (mixed benign and adversarial)
     less = pd.DataFrame()
     more = pd.DataFrame()
+    all_mixed = pd.DataFrame()
     all_benign = pd.DataFrame()
 
     LVindex = 0
@@ -133,6 +134,12 @@ def generate_defense_dataset(cluster_dir, out_dir):
                     more = pd.concat([more, pd.DataFrame(p)], ignore_index=True)
                 MVindex += 1
 
+            # Accumulate all mixed data
+            if not i:
+                all_mixed = pd.DataFrame(p)
+            else:
+                all_mixed = pd.concat([all_mixed, pd.DataFrame(p)], ignore_index=True)
+
             i+=1
 
     # Create all from benign data only
@@ -152,12 +159,14 @@ def generate_defense_dataset(cluster_dir, out_dir):
 
     less = np.array(less.fillna(0))
     more = np.array(more.fillna(0))
+    all_mixed = np.array(all_mixed.fillna(0))
     all_benign = np.array(all_benign.fillna(0))
 
 
     np.save(out_dir / f"ohiot1dm_train_less_0.npy", less)
     np.save(out_dir / f"ohiot1dm_train_more_0.npy", more)
-    np.save(out_dir / f"ohiot1dm_train_all_0.npy", all_benign)
+    np.save(out_dir / f"ohiot1dm_train_all_0.npy", all_mixed)
+    np.save(out_dir / f"ohiot1dm_train_all_benign_0.npy", all_benign)
 
     ########################################################################################################################
     # samples

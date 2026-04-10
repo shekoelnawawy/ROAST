@@ -51,7 +51,8 @@ def generate_defense_dataset(cluster_dir, out_dir):
 
     np.save(out_dir / 'mimic_train_less_0.npy', data[LessVulnerablePatientIDs].reshape(-1,data.shape[2]))
     np.save(out_dir / 'mimic_train_more_0.npy', data[MoreVulnerablePatientIDs].reshape(-1,data.shape[2]))
-    np.save(out_dir / 'mimic_train_all_0.npy', data_benign.reshape(-1,data_benign.shape[2]))
+    np.save(out_dir / 'mimic_train_all_0.npy', data[AllPatientIDs].reshape(-1,data.shape[2]))
+    np.save(out_dir / 'mimic_train_all_benign_0.npy', data_benign.reshape(-1,data_benign.shape[2]))
 
     for run in range(5):
 
