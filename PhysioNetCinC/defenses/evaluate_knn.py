@@ -16,6 +16,7 @@ def combine_results(output_directory):
     file_samples = output_directory/"samples"/"Results.csv"
     file_more = output_directory/"more"/"Results.csv"
     file_all = output_directory/"all"/"Results.csv"
+    file_all_benign = output_directory/"all_benign"/"Results.csv"
 
     output_file = output_directory/"KNN_combined_results.csv"
 
@@ -35,17 +36,20 @@ def combine_results(output_directory):
     df_samples = pd.read_csv(file_samples)
     df_more = pd.read_csv(file_more)
     df_all = pd.read_csv(file_all)
+    df_all_benign = pd.read_csv(file_all_benign)
 
     # === Rename columns ===
     df_less = rename_columns(df_less, "Less")
     df_samples = rename_columns(df_samples, "Samples")
     df_more = rename_columns(df_more, "More")
     df_all = rename_columns(df_all, "All")
+    df_all_benign = rename_columns(df_all_benign, "All_Benign")
 
     # === Merge on CV ===
     merged = df_less.merge(df_samples, on="CV") \
                     .merge(df_more, on="CV") \
-                    .merge(df_all, on="CV")
+                    .merge(df_all, on="CV") \
+                    .merge(df_all_benign, on="CV")
 
     # === Ensure correct column order ===
     ordered_cols = [
@@ -54,6 +58,7 @@ def combine_results(output_directory):
         "Samples_Accuracy", "Samples_Precision", "Samples_Recall", "Samples_F1",
         "More_Accuracy", "More_Precision", "More_Recall", "More_F1",
         "All_Accuracy", "All_Precision", "All_Recall", "All_F1",
+        "All_Benign_Accuracy", "All_Benign_Precision", "All_Benign_Recall", "All_Benign_F1",
     ]
 
     merged = merged[ordered_cols]
@@ -62,14 +67,16 @@ def combine_results(output_directory):
     # === Create custom headers ===
     header1 = [
         "",
-        "Less Vulnerable","","","",
-        "Samples Training","","","",
-        "More Vulnerable","","","",
-        "All Patients","","",""
+        "Less Vulnerable (OE)","","","",
+        "Samples Training (OE)","","","",
+        "More Vulnerable (OE)","","","",
+        "All Patients (OE)","","","",
+        "All Patients (Benign)","","",""
     ]
 
     header2 = [
         "CV",
+        "Accuracy","Precision","Recall","F1",
         "Accuracy","Precision","Recall","F1",
         "Accuracy","Precision","Recall","F1",
         "Accuracy","Precision","Recall","F1",
@@ -94,7 +101,7 @@ def evaluate_knn(output_directory):
     # scaler = StandardScaler()
     # scaler = RobustScaler()
     ######################################################################################################################################
-    # less
+    # less (OE)
     os.makedirs(output_directory / "less", exist_ok=True)
     results = open(output_directory / "less" / "Results.csv", 'w')
     results.write('CV,Accuracy,Precision,Recall,F1\n')
@@ -117,7 +124,7 @@ def evaluate_knn(output_directory):
             recall_score(test_y, lst)) + ',' + str(f1_score(test_y, lst)) + '\n')
     results.close()
     ######################################################################################################################################
-    # more
+    # more (OE)
     os.makedirs(output_directory/"more", exist_ok=True)
     results = open(output_directory/"more"/"Results.csv", 'w')
     results.write('CV,Accuracy,Precision,Recall,F1\n')
@@ -141,7 +148,31 @@ def evaluate_knn(output_directory):
             recall_score(test_y, lst)) + ',' + str(f1_score(test_y, lst)) + '\n')
     results.close()
     ######################################################################################################################################
-    #All patients
+    #All patients (Benign)
+    os.makedirs(output_directory/"all_benign", exist_ok=True)
+    results = open(output_directory/"all_benign"/"Results.csv", 'w')
+    results.write('CV,Accuracy,Precision,Recall,F1\n')
+
+    train = np.load(data_dir/"sepsis_train_all_benign_0.npy")
+    train_x = train[:, :-1]
+    train_y = train[:, -1]
+
+    neigh.fit(train_x)
+    # clf.fit(scaler.fit_transform(train_x))
+
+    for cv in range(5):
+        print('All\tCV: ' + str(cv))
+        test = np.load(data_dir / f"sepsis_test_all_{cv}.npy")
+        test_x = test[:, :-1]
+        test_y = test[:, -1]
+
+        lst = neigh.predict(test_x)
+        
+        results.write(str(cv) + ',' + str(accuracy_score(test_y, lst) * 100) + ',' + str(precision_score(test_y, lst)) + ',' + str(
+            recall_score(test_y, lst)) + ',' + str(f1_score(test_y, lst)) + '\n')
+    results.close()
+    ######################################################################################################################################
+    #All patients (OE)
     os.makedirs(output_directory/"all", exist_ok=True)
     results = open(output_directory/"all"/"Results.csv", 'w')
     results.write('CV,Accuracy,Precision,Recall,F1\n')
@@ -165,7 +196,7 @@ def evaluate_knn(output_directory):
             recall_score(test_y, lst)) + ',' + str(f1_score(test_y, lst)) + '\n')
     results.close()
     ######################################################################################################################################
-    # Samples
+    # Samples (OE)
     os.makedirs(output_directory/"samples", exist_ok=True)
     results = open(output_directory/"samples"/"Results.csv", 'w')
     results.write('CV,Accuracy,Precision,Recall,F1\n')

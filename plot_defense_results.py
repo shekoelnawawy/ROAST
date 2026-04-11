@@ -92,15 +92,16 @@ def parse_results_csv(csv_path):
             metrics["more_vulnerable"]["recall"].append(float(row[11]))
             metrics["more_vulnerable"]["f1"].append(float(row[12]))
 
-            metrics["all_patients_benign"]["accuracy"].append(float(row[13]))
-            metrics["all_patients_benign"]["precision"].append(float(row[14]))
-            metrics["all_patients_benign"]["recall"].append(float(row[15]))
-            metrics["all_patients_benign"]["f1"].append(float(row[16]))
-            
-            metrics["all_patients_OE"]["accuracy"].append(float(row[17]))
-            metrics["all_patients_OE"]["precision"].append(float(row[18]))
-            metrics["all_patients_OE"]["recall"].append(float(row[19]))
-            metrics["all_patients_OE"]["f1"].append(float(row[20]))
+            metrics["all_patients_OE"]["accuracy"].append(float(row[13]))
+            metrics["all_patients_OE"]["precision"].append(float(row[14]))
+            metrics["all_patients_OE"]["recall"].append(float(row[15]))
+            metrics["all_patients_OE"]["f1"].append(float(row[16]))
+
+            metrics["all_patients_benign"]["accuracy"].append(float(row[17]))
+            metrics["all_patients_benign"]["precision"].append(float(row[18]))
+            metrics["all_patients_benign"]["recall"].append(float(row[19]))
+            metrics["all_patients_benign"]["f1"].append(float(row[20]))
+
 
     return metrics
 
