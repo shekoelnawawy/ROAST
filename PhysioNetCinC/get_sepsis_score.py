@@ -12,7 +12,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-# Nawawy's start
+# N's start
 from pathlib import Path
 import joblib
 import sys
@@ -28,21 +28,21 @@ def feature_extractor(x):
 def mse(output, target):
 	loss=torch.mean((output - target) ** 2)
 	return loss
-# Nawawy's end
+# N's end
 
 class Model(nn.Module):
-    # Nawawy's start
+    # N's start
     def __init__(self,input_size,hidden_size,hidden_depth, device=None):
-    # Nawawy's end
+    # N's end
         super(Model, self).__init__()
         self.input_size = input_size
         self.hidden_size = hidden_size
         self.hidden_depth = hidden_depth
-        # Nawawy's start
+        # N's start
         self.device = device
         self.lstm = nn.LSTM(input_size, self.hidden_size, self.hidden_depth, bidirectional=False, dropout=0, device = self.device)
         self.fc1 = nn.Linear(1*self.hidden_size, 2, device = self.device)
-        # Nawawy's end
+        # N's end
     def forward(self, x):
         h0 = torch.zeros(self.hidden_depth * 1, 1, self.hidden_size).to(x.device)
         c0 = torch.zeros(self.hidden_depth * 1, 1, self.hidden_size).to(x.device)
@@ -55,13 +55,13 @@ class Model(nn.Module):
         return x, F.softmax(x, dim=1)
 
 
-# Nawawy's start
+# N's start
 def get_sepsis_score(data, model, adversary=False, adversarial_data=None):
-# Nawawy's end
+# N's end
     data = pd.DataFrame(data)
     data = data.fillna(method='ffill')
     data = data.fillna(0).values
-    # Nawawy's start
+    # N's start
     device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
     backcast_length = data.shape[0]
     nv = data.shape[1]
@@ -123,23 +123,23 @@ def get_sepsis_score(data, model, adversary=False, adversarial_data=None):
         # Benign mode
         data = data / norm
 
-    # Nawawy's start
+    # N's start
     data = torch.Tensor(data).float().to(device)
-    # Nawawy's end
+    # N's end
     threshold = 0.10
     _, probs = model(data)
     probs = probs[:, 1]
     argmax = (probs > threshold)
-    # Nawawy's start
+    # N's start
     return probs.cpu().data.numpy()[0], argmax.cpu().data.numpy()[0]
-    # Nawawy's end
+    # N's end
 
 def load_sepsis_model():
     modelpth = str(Path(__file__).resolve().parent/'model_1561740354_cv_0_16_0.09277561709115473')
-    # Nawawy's start
+    # N's start
     device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
     model = Model(40,100,2, device)
-    # Nawawy's end
+    # N's end
     model.load_state_dict(torch.load(modelpth))
     model.eval()
     return model

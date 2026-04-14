@@ -282,10 +282,10 @@ def load_parameters(identifier):
     # load_path = './experiments/parameters/' + identifier + '.npy'
     # load_path = './experiments/parameters/' + identifier + '.npy'
 
-    # Nawawy's start
+    # N's start
     model_parameters = np.load(identifier, allow_pickle = True).item()
     # model_parameters = np.load(identifier).item()
-    # Nawawy's end
+    # N's end
     return model_parameters
 
 

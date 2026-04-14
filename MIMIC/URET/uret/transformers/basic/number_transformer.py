@@ -62,9 +62,9 @@ class NumberTransformer(Transformer):
                     "number_type"
                 ] = number_type  # Number type tells the subtransformers what data type they are modifying
 
-        # Nawawy's start
+        # N's start
         subtransformer_args[0]["number_type"] = number_type
-        # Nawawy's end
+        # N's end
 
         super(NumberTransformer, self).__init__(subtransformer_args, input_constraints, input_processor)
 
@@ -204,9 +204,9 @@ class NumberTransformer(Transformer):
                 if (method == 4 or method == 5) and self.input_constraints["bounds"].get("upper") is not None:
                     upper_bound = max(upper_bound, self.input_constraints["bounds"].get("upper"))
                 
-            # Nawawy's MIMIC start
+            # N's start
             if (transformation_effect > 0 and np.greater_equal(x, upper_bound).all()) or (transformation_effect < 0 and np.less_equal(x, lower_bound).all()):
-            # Nawawy's MIMIC end
+            # N's end
                 return False, []
 
         return True, action_args

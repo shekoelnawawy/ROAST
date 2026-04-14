@@ -20,9 +20,9 @@ begin = time()
 
 tf.compat.v1.logging.set_verbosity(tf.compat.v1.logging.ERROR)
 
-# Nawawy's start
+# N's start
 tf.compat.v1.disable_eager_execution()
-# Nawawy's end
+# N's end
 
 # --- get settings --- #
 # parse command line arguments, or use defaults
@@ -41,11 +41,11 @@ settings["eval_single"] = False
 #                                              settings["num_signals"], settings['sub_id'], settings["eval_single"],
 #                                              settings["eval_an"], data_path, settings["year"])
 
-# Nawawy's start
+# N's start
 samples, labels, index = data_utils.get_data(settings["data"], settings["seq_length"], settings["seq_step"],
                                              settings["num_signals"], settings['sub_id'], settings["eval_single"],
                                              settings["eval_an"], data_path, settings["year"], settings["patient"])
-# Nawawy's end
+# N's end
 
 print('samples_size:',samples.shape)
 # -- number of variables -- #

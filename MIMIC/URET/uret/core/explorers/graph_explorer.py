@@ -3,9 +3,9 @@ from abc import ABC, abstractmethod
 import numpy as np
 import random
 import tqdm
-# Nawawy's MIMIC start
+# N's start
 import torch
-# Nawawy's MIMIC end
+# N's end
 
 def create_default_loss_func(scoring_alg, feature_extractor, model_predict, target_label=None):
     """
@@ -143,7 +143,7 @@ class GraphExplorer(ABC):
             elif len(target_features) != len(x):
                 raise ValueError("There must be as many target features as inputs")
 
-        # Nawawy's MIMIC start
+        # N's start
         # generated_samples = []
         #
         # if return_record:
@@ -163,7 +163,7 @@ class GraphExplorer(ABC):
 
         # if len(np.shape(original_pred)) == 2:
         #     original_pred = original_pred[0]
-        # Nawawy's MIMIC end
+        # N's end
 
         best_sample = None
         best_score = np.inf
@@ -171,15 +171,15 @@ class GraphExplorer(ABC):
             best_record = None
 
         if self.scoring_alg == "model_loss":
-            # Nawawy's MIMIC start
+            # N's start
             score_input = y_truth
-            # Nawawy's MIMIC end
+            # N's end
         else:
             score_input = target_features
 
         for sample_next, transformation_record, _ in self.search([sample, backcast, nv], score_input):
             # Score the current sample
-            # Nawawy's MIMIC start
+            # N's start
             new_prediction, logits = self.model_predict(sample_next[0], sample_next[1], sample_next[2], sample_next[3], sample_next[4], sample_next[5], sample_next[6])
             test_prob = []
             test_logits = []
@@ -193,7 +193,7 @@ class GraphExplorer(ABC):
 
             # For all loss types, we can early exit if an adversarial example is found
             # new_prediction = self.model_predict(self.feature_extractor(sample_next))
-            # Nawawy's MIMIC end
+            # N's end
             if len(np.shape(new_prediction)) == 2:
                 new_prediction = new_prediction
 
@@ -203,10 +203,10 @@ class GraphExplorer(ABC):
                 if return_record:
                     best_record = transformation_record
                 break
-            # Nawway's MIMIC start
+            # Nawway's start
             # elif (new_prediction.data.cpu().numpy()>=0.5).sum() >= (original_pred.data.cpu().numpy()>=0.5).sum() and (new_prediction.data.cpu().numpy()>=0.5).sum() > (score_input.data.cpu().numpy()>=0.5).sum():
             elif (np.subtract(new_prediction.data.cpu().numpy(), original_pred.data.cpu().numpy()) >= 0.4).sum() >= len(new_prediction.data.cpu().numpy())*0.3:
-            # Nawawy's MIMIC end
+            # N's end
                 best_sample = sample_next
                 best_score = score
                 if return_record:
@@ -219,13 +219,13 @@ class GraphExplorer(ABC):
                 best_score = score
                 if return_record:
                     best_record = transformation_record
-        # Nawway's MIMIC start
+        # Nawway's start
 
         if return_record:
             return best_sample, best_record
 
         return best_sample
-        # Nawawy's MIMIC end
+        # N's end
 
 
     def _enforce_dependencies(self, sample):

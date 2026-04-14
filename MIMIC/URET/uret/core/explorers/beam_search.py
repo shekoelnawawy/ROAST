@@ -63,13 +63,13 @@ class BeamSearchGraphExplorer(GraphExplorer):
         :param transformation_records: history of applied transformations.
         :param depth: current depth of search.
         """
-        # Nawawy's start
+        # N's start
         # [meds, chart, out, proc, lab, stat, demo]
 
         backcast = sample[1]
         nv = sample[2]
         sample = sample[0]
-        # Nawawy's end
+        # N's end
 
         if depth >= self.max_depth:
             return
@@ -81,12 +81,12 @@ class BeamSearchGraphExplorer(GraphExplorer):
             convert_back_to_list = True
             sample = np.array(sample)
 
-        # Nawawy's start
+        # N's start
         edge_transform_estimates = self.ranking_algorithm.rank_edges(
             [sample, backcast, nv], self.scoring_function, score_input, self.model_predict, self.feature_extractor,
             self.dependencies, transformation_records
         )
-        # Nawawy's end
+        # N's end
 
         # No actions are possible from current vertex
         if len(edge_transform_estimates) == 0:
@@ -95,12 +95,12 @@ class BeamSearchGraphExplorer(GraphExplorer):
         indicies, transformers, transformer_params, samples_next, new_transformation_records, scores = zip(
             *edge_transform_estimates
         )
-        # Nawawy's start
+        # N's start
         y = []
         for t in scores:
             y.append(t.cpu().detach().item())
         scores = np.array(y)
-        # Nawawy's end
+        # N's end
         ranked_edge_list = np.argsort(scores)  # Score is the lower, the better.
         rank = 0
         returned_edge_count = 0
@@ -147,9 +147,9 @@ class BeamSearchGraphExplorer(GraphExplorer):
 
             # Only evaluate nodes that haven't been previously visited
             if not np.any(
-                # Nawawy's MIMIC start
+                # N's start
                 [np.all(sample_next[1].numpy().reshape(-1, len(sample_next[1])*backcast*nv) == v[1].numpy().reshape(-1, len(v[1])*backcast*nv)) for v in self.visited_nodes]
-                # Nawawy's MIMIC end
+                # N's end
             ):  # This might not work with all data types?
                 if convert_back_to_list:  # Restore back to list
                     sample_next = list(sample_next)
@@ -161,9 +161,9 @@ class BeamSearchGraphExplorer(GraphExplorer):
                 if self.max_visits and len(self.visited_nodes) >= self.max_visits:
                     break
                 for sts_tuple in self.search(
-                    # Nawawy's start
+                    # N's start
                     [sample_next, backcast, nv],
-                    # Nawawy's end
+                    # N's end
                     score_input,
                     transformation_records_next,
                     depth + 1,

@@ -14,7 +14,7 @@ from pathlib import Path
 import yaml
 from tqdm import tqdm
 
-# Nawawy's start
+# N's start
 from URET.uret.utils.config import process_config_file
 
 cf = str(Path(__file__).resolve().parent/"URET"/"brute.yml")
@@ -23,7 +23,7 @@ def feature_extractor(x):
 	device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
 	return torch.tensor(x, dtype=torch.float).to(device)
 
-# Nawawy's end
+# N's end
 
 os.environ['KMP_DUPLICATE_LIB_OK']='True'
 os.environ["CUDA_DEVICE_ORDER"]="PCI_BUS_ID"   
@@ -63,7 +63,7 @@ horizon=6#
 #Do individual subject models
 PERSUBJECT=True
 
-# Nawawy's start
+# N's start
 subjects = []
 #subjects=['540','544','552','567','584','596']
 #where to save the outputs (a name for a new folder)
@@ -112,7 +112,7 @@ def fgsm_attack(model, x, y, epsilon, backcast_length, nv, device, clip_min=180,
 		)
 
 	return x_adv.detach().cpu().numpy().reshape(-1, backcast_length * nv)
-# Nawawy's end
+# N's end
 
 loopsthrough=1
 if PERSUBJECT:
@@ -138,13 +138,13 @@ backcastopts=[2,3,4,5,6,7]
 	
 #################################### MAIN SECTION ############################################
 def main():
-	# Nawawy's start
+	# N's start
 	global subjects
 	if "2018data" in year:
 		subjects = ['559', '563', '570', '575', '588', '591']  # 2018
 	elif "2020data" in year:
 		subjects = ['540', '544', '552', '567', '584', '596']  # 2020
-	# Nawawy's end
+	# N's end
 	# maindir = os.getcwd()+'/'+outstr
 	maindir = outstr
 
@@ -207,24 +207,24 @@ def main():
 		lossesel=[]
 		#loop through every batch in training data.
 		batch=0
-		# Nawawy's start
+		# N's start
 		all_targets=[]
 		all_medians=[]
-		# Nawawy's end
+		# N's end
 		while(True):
 			x_postprandial,target,done=next(testgen)
-			# Nawawy's start
+			# N's start
 			if done:
 				break
 			x = x_postprandial[:,:,:-1]
-			# Nawawy's end
+			# N's end
 			totalpoints = totalpoints+x.shape[0]
 			#loop through each directory and load predicions
 			preds=[]
 			for f in os.listdir(maindir):
-				# Nawawy's start
+				# N's start
 				if f.startswith('model'):
-				# Nawawy's end
+				# N's end
 					temp=joblib.load(maindir+'/'+f+'/preds.pkl')
 					preds.append(temp[batch])
 					del temp
@@ -233,10 +233,10 @@ def main():
 
 			median=np.median(preds,axis=0)
 
-			# Nawawy's start
+			# N's start
 			all_targets.append(target)
 			all_medians.append(median)
-			# Nawawy's end
+			# N's end
 
 			#get losses
 			losses.append(mse_cpu(target, median)*x.shape[0])
@@ -256,10 +256,10 @@ def main():
 			
 			batch=batch+1
 
-		# Nawawy's start
+		# N's start
 		joblib.dump(np.array(all_targets).reshape(-1, horizon), maindir + '/actual_output.pkl')
 		joblib.dump(np.array(all_medians).reshape(-1, horizon), maindir + '/predicted_output.pkl')
-		# Nawawy's end
+		# N's end
 
 		#write final losses
 		#MSE for whole window
@@ -324,7 +324,7 @@ def train_and_evaluate(curmodel,maindir,forecast_length,backcast_length,sub,base
 
 	fit(net, optimiser, traingen,valgen,mydir, device,basedir)
 
-	# Nawawy's start
+	# N's start
 	# CALL URET/FGSM HERE
 	index = 0
 	while (True):
@@ -380,7 +380,7 @@ def train_and_evaluate(curmodel,maindir,forecast_length,backcast_length,sub,base
 		allPatients_adversarial = allPatients_adversarial.reshape(-1, backcast_length, nv)  # 15701, 12, 7
 		joblib.dump(allPatients_postprandial, maindir + '/benign_data.pkl')
 		joblib.dump(allPatients_adversarial, maindir + '/adversarial_data.pkl')
-	# Nawawy's end
+	# N's end
 
 	eval(net, optimiser, testgen,mydir,  device)
 
@@ -416,12 +416,12 @@ def fit(net, optimiser, traingen,valgen,mydir,device, basedir):
 		while(True):
 			optimiser.zero_grad()
 			net.train()
-			# Nawawy's start
+			# N's start
 			x_postprandial, target, done = next(traingen)
 			if done:
 				break
 			x = x_postprandial[:, :, :-1]
-			# Nawawy's end
+			# N's end
 			total=total+x.shape[0]
 			forecast,fores,backs,backsum,backtargs= net(   torch.tensor(x, dtype=torch.float).to(device)	 )
 			if FIL:
@@ -445,12 +445,12 @@ def fit(net, optimiser, traingen,valgen,mydir,device, basedir):
 		total=0
 		while(True):
 			with torch.no_grad():
-				# Nawawy's start
+				# N's start
 				x_postprandial, target, done = next(valgen)
 				if done:
 					break
 				x = x_postprandial[:, :, :-1]
-				# Nawawy's end
+				# N's end
 				total=total+x.shape[0]
 				forecast,fores,backs,backsum,backtargs= net(   torch.tensor(x, dtype=torch.float).to(device)	 )
 				loss = losss(forecast, torch.tensor(target, dtype=torch.float).to(device))
@@ -487,10 +487,10 @@ def eval(net, optimiser, testgen,mydir,  device):
 		preds=[]
 		while(True):
 			x,target,done=next(testgen)
-			# Nawawy's start
+			# N's start
 			if done:
 				break
-			# Nawawy's end
+			# N's end
 			totalpoints = totalpoints+x.shape[0]
 			forecast,dummy1,backs,dummy3,dummy4 = net(torch.tensor(x, dtype=torch.float).to(device))
 			preds.append(forecast.cpu().numpy())
@@ -777,16 +777,16 @@ def makedata(totallength, sub):
 
 	stored_trains = {}
 	# first load train data
-	# Nawawy's start
+	# N's start
 	for f in os.listdir(year):
-	# Nawawy's end
+	# N's end
 		if f.endswith('train.pkl'):
 			if not sub == 99:
 				if not f[:3] == subjects[sub]:
 					continue
-			# Nawawy's start
+			# N's start
 			a = pd.read_pickle(year+'/' + f)
-			# Nawawy's end
+			# N's end
 			g = np.asarray(a['glucose'])
 			b = np.asarray(a['basal'])
 			d = np.asarray(a['dose'])
@@ -795,9 +795,9 @@ def makedata(totallength, sub):
 			hr = np.asarray(a['hr'])
 			gsr = np.asarray(a['gsr'])
 
-			# Nawawy's start
+			# N's start
 			post = np.asarray(a['postprandial'])
-			# Nawawy's end
+			# N's end
 
 			t = np.array(a.index.values)
 			t1 = np.sin(t * 2 * np.pi / 288)
@@ -805,9 +805,9 @@ def makedata(totallength, sub):
 			miss = (np.isnan(g)).astype(float)
 			miss2 = (np.isnan(fing)).astype(float)
 
-			# Nawawy's start
+			# N's start
 			x = np.stack((g, d, c, t1, t2, fing, miss, post), axis=1)
-			# Nawawy's end
+			# N's end
 
 			ll = x.shape[0]
 			if not AVD:
@@ -818,16 +818,16 @@ def makedata(totallength, sub):
 				val.append(x.copy()[int(ll * .8):, :])
 			# store to use in test for end
 			stored_trains[f] = x.copy()
-	# Nawawy's start
+	# N's start
 	for f in os.listdir(year):
-	# Nawawy's end
+	# N's end
 		if f.endswith('test.pkl'):
 			if not sub == 99:
 				if not f[:3] == subjects[sub]:
 					continue
-			# Nawawy's start
+			# N's start
 			a = pd.read_pickle(year+'/' + f)
-			# Nawawy's end
+			# N's end
 			g = np.asarray(a['glucose'])
 			b = np.asarray(a['basal'])
 			d = np.asarray(a['dose'])
@@ -836,9 +836,9 @@ def makedata(totallength, sub):
 			hr = np.asarray(a['hr'])
 			gsr = np.asarray(a['gsr'])
 
-			# Nawawy's start
+			# N's start
 			post = np.asarray(a['postprandial'])
-			# Nawawy's end
+			# N's end
 
 			t = np.array(a.index.values)
 			miss2 = (np.isnan(fing)).astype(float)
@@ -846,9 +846,9 @@ def makedata(totallength, sub):
 			t2 = np.cos(t * 2 * np.pi / 288)
 			miss = (np.isnan(g)).astype(float)
 
-			# Nawawy's start
+			# N's start
 			x = np.stack((g, d, c, t1, t2, fing, miss, post), axis=1)
-			# Nawawy's end
+			# N's end
 
 			# add in last training points so that we are predicting all points after
 			# the first hour of test data

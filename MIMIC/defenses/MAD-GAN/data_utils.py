@@ -11,9 +11,9 @@ import model
 from scipy.spatial.distance import pdist, squareform
 from scipy.stats import multivariate_normal, invgamma, mode
 from scipy.special import gamma
-# Nawawy's start
+# N's start
 # from scipy.misc.pilutil import imresize
-# Nawawy's end
+# N's end
 from functools import partial
 from math import ceil
 
@@ -465,11 +465,11 @@ def kdd99_test(seq_length, seq_step, num_signals):
 
 
 def mimic(year, seq_length, seq_step, num_signals):
-    # Nawawy's start
+    # N's start
     SCRIPT_DIR = Path(__file__).resolve().parent
     data_dir = SCRIPT_DIR.parent.parent / "output" / "defense_dataset"
     train = np.array(np.load(str(data_dir)+'/mimic_train_'+year+'.npy'), dtype=float)
-    # Nawawy's end
+    # N's end
     print('load mimic_train from .npy')
     m, n = train.shape  # m=562387, n=35
     # normalization
@@ -521,11 +521,11 @@ def mimic(year, seq_length, seq_step, num_signals):
     return samples, labels
 
 def mimic_test(year, seq_length, seq_step, num_signals):
-    # Nawawy's start
+    # N's start
     SCRIPT_DIR = Path(__file__).resolve().parent
     data_dir = SCRIPT_DIR.parent.parent / "output" / "defense_dataset"
     test = np.array(np.load(str(data_dir)+'/mimic_test_'+year+'.npy'), dtype=float)
-    # Nawawy's end
+    # N's end
     print('load mimic_test from .npy')
 
     m, n = test.shape  # m1=494021, n1=35
@@ -580,11 +580,11 @@ def mimic_test(year, seq_length, seq_step, num_signals):
     return samples, labels, index
 
 def mimic_patient_wise(year, patient, seq_length, seq_step, num_signals):
-    # Nawawy's start
+    # N's start
     SCRIPT_DIR = Path(__file__).resolve().parent
     data_dir = SCRIPT_DIR.parent.parent / "output" / "defense_dataset"
     train = np.array(np.load(str(data_dir)+'/mimic_train_'+year+'_'+patient+'.npy'), dtype=float)
-    # Nawawy's end
+    # N's end
     print('load mimic_train from .npy')
     m, n = train.shape  # m=562387, n=35
     # normalization
@@ -635,11 +635,11 @@ def mimic_patient_wise(year, patient, seq_length, seq_step, num_signals):
     return samples, labels
 
 def mimic_test_patient_wise(year, patient, seq_length, seq_step, num_signals):
-    # Nawawy's start
+    # N's start
     SCRIPT_DIR = Path(__file__).resolve().parent
     data_dir = SCRIPT_DIR.parent.parent / "output" / "defense_dataset"
     test = np.array(np.load(str(data_dir)+'/mimic_test_'+year+'_'+patient+'.npy'), dtype=float)
-    # Nawawy's end
+    # N's end
     print('load mimic_test from .npy')
 
     m, n = test.shape  # m1=494021, n1=35
@@ -771,9 +771,9 @@ def get_samples_and_labels(settings):
 
     return samples, pdf, labels
 
-# Nawawy's start
+# N's start
 def get_data(data_type, seq_length, seq_step, num_signals, sub_id, eval_single, eval_an, data_options=None, year=None, patient=None):
-# Nawawy's end
+# N's end
     """
     Helper/wrapper function to get the requested data.
     """

@@ -106,7 +106,7 @@ import evaluation
 
 
 
-# Nawawy's start
+# N's start
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(
         description="Run MIMIC script: python run.py --out_dir <output_directory> --train_test <1/0>",

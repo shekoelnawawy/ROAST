@@ -1,11 +1,3 @@
-# Systematically Assessing the Security Risks of AI/ML-enabled Connected Healthcare Systems
-
-_Mohammed Elnawawy *, Mohammadreza Hallajiyan *, Gargi Mitra *, Shahrear Iqbal &, and Karthik Pattabiraman *_
-
-_* University of British Columbia_
-
-_& National Research Council Canada_
-
 This repository is a time-series adaptation of the Universal Robustness Evaluation Toolkit (URET) found at the following link: https://github.com/IBM/URET.git
 
 URET is a tool for generating adversarial samples that can deceive an ML model into mispredicting a particular output.

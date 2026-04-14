@@ -19,13 +19,13 @@ class BruteForce(RankingAlgorithm):
         """
         super().__init__(transformer_list, multi_feature_input, is_trained=True)
 
-    # Nawawy's start
+    # N's start
     def rank_edges(self, sample, scoring_function, score_input, model_predict, feature_extractor, dependencies=[],
                    current_transformation_records=None):
         backcast = sample[1]
         nv = sample[2]
         sample = sample[0]
-    # Nawawy's end
+    # N's end
 
         # Create transformation record
         if self.multi_feature_input and current_transformation_records is None:
@@ -35,9 +35,9 @@ class BruteForce(RankingAlgorithm):
         # transformation_record of the transformed sample, score)
 
         for transformer_index, (transformer, input_index) in enumerate(self.transformer_list):
-            # Nawawy's start
+            # N's start
             input_index = list(range(input_index[0], len(sample), nv))
-            # Nawawy's end
+            # N's end
             if self.multi_feature_input:
                 possible_actions = transformer.get_possible(
                     sample[input_index], transformation_record=current_transformation_records[transformer_index]
@@ -66,13 +66,13 @@ class BruteForce(RankingAlgorithm):
                     transformation_records_temp = new_transformation_record
 
                 sample_temp = self._enforce_dependencies(sample_temp, dependencies)
-                # Nawawy's start
+                # N's start
                 sample_temp = sample_temp.reshape(1, backcast, nv)
                 _, new_prediction = model_predict(feature_extractor(sample_temp))
                 score = scoring_function(new_prediction, score_input)
 
                 sample_temp = sample_temp.reshape(backcast * nv)
-                # Nawawy's end
+                # N's end
                 if self.multi_feature_input:
                     return_values.append(
                         (

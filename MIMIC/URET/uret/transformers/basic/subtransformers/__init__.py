@@ -4,6 +4,6 @@ from uret.transformers.basic.subtransformers.delete import Delete
 from uret.transformers.basic.subtransformers.insert import Insert
 from uret.transformers.basic.subtransformers.substitution import Substitution
 
-# Nawawy's start
+# N's start
 from uret.transformers.basic.subtransformers.modify import Modify
-# Nawawy's end
+# N's end

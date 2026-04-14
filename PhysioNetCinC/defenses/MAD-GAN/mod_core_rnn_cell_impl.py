@@ -397,12 +397,12 @@ class LSTMCell(RNNCell):
 
     dtype = inputs.dtype
     input_size = inputs.get_shape().with_rank(2)[1]
-    # Nawawy's start
+    # N's start
     if input_size is None:
       raise ValueError("Could not infer input size from inputs.get_shape()[-1]")
     # if input_size.value is None:
     #   raise ValueError("Could not infer input size from inputs.get_shape()[-1]")
-    # Nawawy's end
+    # N's end
     with _checked_scope(self, scope or "lstm_cell",
                         initializer=self._initializer,
                         reuse=self._reuse) as unit_scope:
@@ -1028,7 +1028,7 @@ def _linear(args, output_size, bias, bias_start=0.0, scope=None):
   Raises:
     ValueError: if some of the arguments has unspecified or wrong shape.
   """
-  # Nawawy's start
+  # N's start
   if args is None or (nest.is_sequence_or_composite(args) and not args):
     raise ValueError("`args` must be specified")
   if not nest.is_sequence_or_composite(args):
@@ -1038,7 +1038,7 @@ def _linear(args, output_size, bias, bias_start=0.0, scope=None):
   #   raise ValueError("`args` must be specified")
   # if not nest.is_sequence(args):
   #   args = [args]
-  # Nawawy's end
+  # N's end
 
   # Calculate the total size of arguments on dimension 1.
   total_arg_size = 0
@@ -1047,7 +1047,7 @@ def _linear(args, output_size, bias, bias_start=0.0, scope=None):
     if shape.ndims != 2:
       raise ValueError("linear is expecting 2D arguments: %s" % shapes)
 
-    # Nawawy's start
+    # N's start
     if shape[1] is None:
       raise ValueError("linear expects shape[1] to be provided for shape %s, "
                        "but saw %s" % (shape, shape[1]))
@@ -1059,7 +1059,7 @@ def _linear(args, output_size, bias, bias_start=0.0, scope=None):
     #                    "but saw %s" % (shape, shape[1]))
     # else:
     #   total_arg_size += shape[1].value
-    # Nawawy's end
+    # N's end
   dtype = [a.dtype for a in args][0]
 
   # Now the computation.

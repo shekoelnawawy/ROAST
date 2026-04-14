@@ -146,17 +146,17 @@ class GraphExplorer(ABC):
         if return_record:
             records = []
 
-        # Nawawy's start
+        # N's start
         backcast = x[1]
         nv = x[2]
         x = x[0]
-        # Nawawy's end
+        # N's end
 
         for i, sample in enumerate(tqdm.tqdm(x)):
-            # Nawawy's start
+            # N's start
             sample = sample.reshape(1, backcast, nv)
             original_pred,_,_,_,_ = self.model_predict(self.feature_extractor(sample))
-            # Nawawy's end
+            # N's end
             if len(np.shape(original_pred)) == 2:
                 original_pred = original_pred[0]
 
@@ -169,18 +169,18 @@ class GraphExplorer(ABC):
                 score_input = original_pred
             else:
                 score_input = target_features[i]
-            # Nawawy's start
+            # N's start
             sample = sample.reshape(backcast*nv)
-            # Nawawy's end
+            # N's end
             for sample_next, transformation_record, _ in self.search([sample, backcast, nv], score_input):
-                # Nawawy's start
+                # N's start
                 sample_next = sample_next.reshape(1, backcast, nv)
                 new_prediction, _, _, _, _ = self.model_predict(self.feature_extractor(sample_next))
                 if len(np.shape(new_prediction)) == 2:
                     new_prediction = new_prediction
                 # Score the current sample
                 score = self.scoring_function(new_prediction, score_input)
-                # Nawawy's end
+                # N's end
 
                 # Early exit conditions
                 # If using feature loss, then we can early exit once the target features are attained
@@ -192,18 +192,18 @@ class GraphExplorer(ABC):
                     best_score = score
                     break
 
-                # Nawawy's start
+                # N's start
                 if self.target_label is not None and np.argmax(new_prediction.cpu().detach().numpy()) == self.target_label:
-                # Nawawy's end
+                # N's end
                     best_sample = sample_next
                     best_score = score
                     if return_record:
                         best_record = transformation_record
                     break
 
-                # Nawawy's start
+                # N's start
                 elif np.argmax(new_prediction.cpu().detach().numpy()) != np.argmax(original_pred.cpu().detach().numpy()):
-                # Nawawy's end
+                # N's end
                     best_sample = sample_next
                     best_score = score
                     if return_record:

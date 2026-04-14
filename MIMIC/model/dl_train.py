@@ -56,7 +56,7 @@ from parameters import *
 importlib.reload(evaluation)
 import evaluation
 
-# Nawawy's MIMIC start
+# N's start
 import joblib
 import sys
 import yaml
@@ -68,7 +68,7 @@ cf = str(Path(__file__).resolve().parent.parent/"URET"/"brute.yml")
 def feature_extractor(x):
     device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
     return torch.tensor(x, dtype=torch.float).to(device)
-# Nawawy's MIMIC end
+# N's end
 
 class DL_models():
     def __init__(self,data_icu,diag_flag,proc_flag,out_flag,chart_flag,med_flag,lab_flag,model_type,k_fold,oversampling,model_name,train, output_dir):
@@ -82,9 +82,9 @@ class DL_models():
         
         if train: self.cond_vocab_size,self.proc_vocab_size,self.med_vocab_size,self.out_vocab_size,self.chart_vocab_size,self.lab_vocab_size,self.eth_vocab,self.gender_vocab,self.age_vocab,self.ins_vocab=model_utils.init(diag_flag,proc_flag,out_flag,chart_flag,med_flag,lab_flag)
         else:
-            # Nawawy's MIMIC start
+            # N's start
             self.cond_vocab_size,self.proc_vocab_size,self.med_vocab_size,self.out_vocab_size,self.chart_vocab_size,self.lab_vocab_size,self.eth_vocab,self.gender_vocab,self.age_vocab,self.ins_vocab=model_utils.init_read(0,diag_flag,proc_flag,out_flag,chart_flag,med_flag,lab_flag)
-            # Nawawy's MIMIC end
+            # N's end
         self.eth_vocab_size,self.gender_vocab_size,self.age_vocab_size,self.ins_vocab_size=len(self.eth_vocab),len(self.gender_vocab),len(self.age_vocab),len(self.ins_vocab)
         
         self.loss=evaluation.Loss('cpu',True,True,True,True,True,True,True,True,True,True,True)
@@ -93,9 +93,9 @@ class DL_models():
         else:
            self.device='cpu'
 
-        # Nawawy's MIMIC start
+        # N's start
         # self.device='cpu'
-        # Nawawy's MIMIC end
+        # N's end
         if train:
             print("===============MODEL TRAINING===============")
             self.dl_train()
@@ -105,7 +105,7 @@ class DL_models():
             print("[ MODEL LOADED ]")
             print(self.net)
 
-            # Nawawy's MIMIC start
+            # N's start
             k_hids = joblib.load('./k_hids/k_hids.pkl')
             benign_data = []
             adversarial_data = []
@@ -137,7 +137,7 @@ class DL_models():
             joblib.dump(benign_output, output_dir+'/benign_output.pkl')
             joblib.dump(adversarial_output, output_dir+'/adversarial_output.pkl')
             joblib.dump(target_output, output_dir+'/target_output.pkl')
-            # Nawawy's MIMIC end
+            # N's end
 
         
         
@@ -183,11 +183,11 @@ class DL_models():
     def dl_train(self):
         k_hids=self.create_kfolds()
 
-        # Nawawy's MIMIC start
+        # N's start
         if not os.path.exists("k_hids"):
             os.makedirs("k_hids")
         joblib.dump(k_hids, './k_hids/k_hids.pkl')
-        # Nawawy's MIMIC end
+        # N's end
 
         labels=pd.read_csv('./data/csv/labels.csv', header=0)
 
@@ -289,9 +289,9 @@ class DL_models():
         val_loss=self.loss(torch.tensor(val_prob),torch.tensor(val_truth),torch.tensor(val_logits),True,False)
         return val_loss.item()
 
-    # Nawawy's MIMIC start
+    # N's start
     def model_test(self,test_hids, adversary=False):
-    # Nawawy's MIMIC end
+    # N's end
         print("======= TESTING ========")
         labels=pd.read_csv('./data/csv/labels.csv', header=0)
 
@@ -305,20 +305,20 @@ class DL_models():
         self.net.eval()
         #print(len(test_hids))
 
-        # Nawawy's MIMIC start
+        # N's start
         terminal_output = open('/dev/stdout', 'w')
         benign_data = []
         adversarial_data = []
         benign_output = []
         target_output = []
         adversarial_output = []
-        # Nawawy's MIMIC end
+        # N's end
         for nbatch in range(int(len(test_hids)/(args.batch_size))):
             print('nbatch = '+str(nbatch), file=terminal_output)
             #print(test_hids[nbatch*args.batch_size:(nbatch+1)*args.batch_size])
             meds,chart,out,proc,lab,stat,demo,y=self.getXY(test_hids[nbatch*args.batch_size:(nbatch+1)*args.batch_size],labels)
 
-            # Nawawy's MIMIC start
+            # N's start
             allPatients_benign = meds, chart, out, proc, lab, stat, demo
 
             config_path = str(Path(__file__).resolve().parent.parent.parent / "pipeline_config.yml")
@@ -387,9 +387,9 @@ class DL_models():
             else:
                 # Regular non-adversarial pass
                 output, logits = self.net(meds, chart, out, proc, lab, stat, demo)
-            # Nawawy's MIMIC end
+            # N's end
 #             self.model_interpret([meds,chart,out,proc,lab,stat,demo])
-#             # Nawawy's MIMIC start
+#             # N's start
             if nbatch == 0:
                 target_output = y.numpy()
                 benign_data = allPatients_benign[1].detach().cpu().numpy()       # benign chart
@@ -407,7 +407,7 @@ class DL_models():
                     adversarial_data = np.append(adversarial_data, allPatients_adversarial[1].detach().cpu().numpy())      # adversarial chart
                 else:
                     benign_output = np.append(benign_output, output.detach().cpu().numpy())
-#             # Nawawy's MIMIC end
+#             # N's end
             output=output.squeeze()
             logits=logits.squeeze()
 #             print(demo.shape)
@@ -423,9 +423,9 @@ class DL_models():
             self.logits.extend(logits.data.cpu().numpy())
         #print(self.eth)
         self.loss(torch.tensor(self.prob),torch.tensor(self.truth),torch.tensor(self.logits),False,False)
-        # Nawawy's MIMIC start
+        # N's start
         return benign_data, adversarial_data, benign_output, adversarial_output, target_output
-        # Nawawy's MIMIC end
+        # N's end
     def model_interpret(self,meds,chart,out,proc,lab,stat,demo):
         meds=torch.tensor(meds).float()
         chart=torch.tensor(chart).float()

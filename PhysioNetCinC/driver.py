@@ -2,11 +2,11 @@
 
 import numpy as np, os, sys
 from get_sepsis_score import load_sepsis_model, get_sepsis_score
-# Nawawy's start
+# N's start
 import joblib
 import argparse
 from pathlib import Path
-# Nawawy's end
+# N's end
 
 def load_challenge_data(file):
     with open(file, 'r') as f:
@@ -48,7 +48,7 @@ if __name__ == '__main__':
     os.makedirs(output_directory / "Predictions" / "Adversarial", exist_ok=True)
     os.makedirs(output_directory / "Data" / "Benign", exist_ok=True)
     os.makedirs(output_directory / "Data" / "Adversarial", exist_ok=True)
-    # Nawawy's end
+    # N's end
 
     # Find files.
     files = []
@@ -68,31 +68,31 @@ if __name__ == '__main__':
         num_rows = len(data)
         scores = np.zeros(num_rows)
         labels = np.zeros(num_rows)
-        # Nawawy's start
+        # N's start
         scores_adversarial = np.zeros(num_rows)
         labels_adversarial = np.zeros(num_rows)
         adversarial_data = np.random.rand(data.shape[0], data.shape[1])
-        # Nawawy's end
+        # N's end
         for t in range(num_rows):
             current_data = data[:t+1]
             current_score, current_label = get_sepsis_score(current_data, model)
             scores[t] = current_score
             labels[t] = current_label
-            # Nawawy's start
+            # N's start
             current_score_adversarial, current_label_adversarial = get_sepsis_score(current_data, model, adversary=True, adversarial_data=adversarial_data)
             scores_adversarial[t] = current_score_adversarial
             labels_adversarial[t] = current_label_adversarial
-            # Nawawy's end
+            # N's end
 
         # Save results.
-        # Nawawy's start
+        # N's start
         output_file = output_directory / "Predictions" / "Benign" / f
-        # Nawawy's end
+        # N's end
         save_challenge_predictions(str(output_file), scores, labels)
 
-        # Nawawy's start
+        # N's start
         output_file = output_directory / "Predictions" / "Adversarial" / f
         save_challenge_predictions(str(output_file), scores_adversarial, labels_adversarial)
         joblib.dump(data, output_directory / "Data" / "Benign" / f'{f[:-4]}.pkl')
         joblib.dump(adversarial_data, output_directory / "Data" / "Adversarial" / f'{f[:-4]}.pkl')
-        # Nawawy's end
+        # N's end

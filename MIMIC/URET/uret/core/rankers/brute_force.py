@@ -1,10 +1,10 @@
 from uret.core.rankers.ranking_algorithm import RankingAlgorithm
 import warnings
 import copy
-# Nawawy's MIMIC start
+# N's start
 import numpy as np
 import torch
-# Nawawy's MIMIC end
+# N's end
 class BruteForce(RankingAlgorithm):
     """
     This implementation tries all transformations and parameters for each given sample,
@@ -21,18 +21,18 @@ class BruteForce(RankingAlgorithm):
         """
         super().__init__(transformer_list, multi_feature_input, is_trained=True)
 
-    # Nawawy's start
+    # N's start
     def rank_edges(self, sample, scoring_function, score_input, model_predict, feature_extractor, dependencies=[],
                    current_transformation_records=None):
         backcast = sample[1]
         nv = sample[2]
-        # Nawawy's MIMIC start
+        # N's start
         original_sample = sample[0]
         sample = sample[0][1]
         number_of_instances = len(sample)
         sample = np.array(sample).reshape(number_of_instances*backcast*nv)
-        # Nawawy's MIMIC end
-    # Nawawy's end
+        # N's end
+    # N's end
 
         # Create transformation record
         if self.multi_feature_input and current_transformation_records is None:
@@ -71,7 +71,7 @@ class BruteForce(RankingAlgorithm):
 
                 sample_temp = self._enforce_dependencies(sample_temp, dependencies)
 
-                # Nawawy's start
+                # N's start
                 sample_temp = sample_temp.reshape(number_of_instances, backcast, nv)
                 new_prediction, logits = model_predict(original_sample[0], torch.from_numpy(sample_temp), original_sample[2], original_sample[3], original_sample[4], original_sample[5], original_sample[6])
                 # new_prediction, _, _, _, _ = model_predict(feature_extractor(sample_temp))
@@ -88,7 +88,7 @@ class BruteForce(RankingAlgorithm):
                 # sample_temp = sample_temp.reshape(backcast * nv)
                 sample_temp = original_sample[0], torch.from_numpy(sample_temp), original_sample[2], original_sample[3], original_sample[4], original_sample[5], original_sample[6]
 
-                # Nawawy's end
+                # N's end
                 if self.multi_feature_input:
                     return_values.append(
                         (

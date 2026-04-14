@@ -76,10 +76,10 @@ def preprocess_data(raw_data_dir, processed_data_dir):
                     if 'test' in fff:
                         joblib.dump(rawtime, Path(processed_data_dir) / f"{Path(fff).name[:3]}.timestamps.pkl")
 
-                    # Nawawy's start
+                    # N's start
                     basetime = np.linspace(int(time.copy()[0]), int(time.copy()[-1] + 1),
                                         int(time.copy()[-1] + 1 - time.copy()[0]))  # -time.copy()[0]
-                    # Nawawy's end
+                    # N's end
 
                     dict[''] = basetime
                     zerotime = time.copy()[0]
@@ -118,7 +118,7 @@ def preprocess_data(raw_data_dir, processed_data_dir):
             df = pd.DataFrame(dict)
             df.set_index('')
 
-            # Nawawy's start
+            # N's start
             df.insert(len(df.columns), "postprandial", False)
             for i in range(len(df)):
                 if df.loc[i, 'carbs'] > 0:
@@ -127,7 +127,7 @@ def preprocess_data(raw_data_dir, processed_data_dir):
                             df):  # postprandial is two hours after meal so 24 stands for 24 intervals of 5 minutes (i.e., 2 hours)
                         df.loc[k, 'postprandial'] = True
                         k += 1
-            # Nawawy's end
+            # N's end
 
             if 'test' in fff:
                 df.to_pickle(Path(processed_data_dir) / f"{Path(fff).name[:3]}.test.pkl")
