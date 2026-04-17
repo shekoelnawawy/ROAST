@@ -161,7 +161,9 @@ def main():
 	
 	#loop through subjects, starting with all subjects
 	#(will do all subjects only if PERSUBJECT is false)
-	for subb in range(loopsthrough):	# for subb in range(1, loopsthrough):
+	# N's start
+	for subb in range(1, loopsthrough):	# for subb in range(loopsthrough):
+	# N's end
 		if PERSUBJECT:
 			if subb==0:
 				sub=99
