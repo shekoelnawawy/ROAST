@@ -345,7 +345,7 @@ def evaluate_madgan(output_directory):
 
     
     out = open(str(output_directory)+"/samples/Results.csv", "w")
-    out.write('Run,CV,Accuracy,Precision,Recall,F1\n')
+    out.write('CV,Accuracy,Precision,Recall,F1\n')
 
     for run in range(5):
         Accuracy = []
